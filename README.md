@@ -9,7 +9,7 @@ The simulator predicts apogee, stability and landing point from the rocket's des
 | Component | Status |
 | --- | --- |
 | RK4 integrator | Done, with tests |
-| Atmosphere model | Planned |
+| Atmosphere model | Done |
 | Thrust and mass model | Planned |
 | Rigid-body rotation (quaternions) | Planned |
 | Aerodynamic forces and moments | Planned |
