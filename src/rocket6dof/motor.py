@@ -9,21 +9,25 @@ class Motor:
     """ A solid rocket motor described by a measured thrust curve
 
     Parameters
+    ----------
+    name : str
+        Motor designation, for example ``"H128W"``.
+    times : array_like
+        Times of the thrust data points [s], strictly increasing, starting
+        at 0 or later. If the first time is after 0, a point (0 s, 0 N) is
+        added at the start.
+    thrusts : array_like
+        Thrust at each time [N]. Must be 0 or more, and end at 0.
+    propellant_mass : float
+        Propellant mass at ignition [kg].
+    total_mass : float
+        Motor mass at ignition, casing plus propellant [kg].
 
-    name: str, motor designation
-
-    times: array_like, Times of the thrust data points [s], strictly increasing
-    starting at 0 or later
-
-    thrusts: array_like, thrust at each time [N]. Must be 0 or higher
-
-    propellant_mass: float, propellant mass at ignition [kg]
-
-    total_mass:float, motor mass at ignition, casing and propellant [kg]
-
-    raises
-    ValueError: if thrust curve or masses are invalid"""
-
+    Raises
+    ------
+    ValueError
+        If the thrust curve or masses are invalid.
+    """
     def __init__(self, name, times, thrusts, propellant_mass, total_mass):
         times = np.asarray(times, dtype = float)
         thrusts = np.asarray(thrusts, dtype=float)
@@ -85,21 +89,23 @@ class Motor:
         return self.total_mass - self.propellant_mass*burned_fraction
 
 def load_eng(path):
-    """Read a motor from a rasp ''.eng'' thrust curve file.
+    """Read a motor from a RASP ``.eng`` thrust-curve file.
 
     Parameters
-
-    Path: str or pathlib.Path
-    Path to the ''.eng'' file
+    ----------
+    path : str or pathlib.Path
+        Path to the ``.eng`` file.
 
     Returns
-
+    -------
     Motor
-        The motor described by the file
+        The motor described by the file.
 
-    raises
-        ValueError: if the header is missing or incomplete, or the data is invalid
-"""
+    Raises
+    ------
+    ValueError
+        If the header is missing or incomplete, or the data are invalid.
+    """
     header = None
     times = []
     thrusts = []

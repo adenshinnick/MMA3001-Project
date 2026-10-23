@@ -8,12 +8,14 @@ def rk4_step(f,t,x,h):
     advance stat by on fourth order runge kutta step
     
     Parameters
+    ----------
     f(callable): returns time derivitive of state as an array, same shap as x
     t(float): current time
     x(array): current state
     h(float): time step
     
     returns
+    -------
     numpy.ndarray
         State at time "t+h"
 '''
@@ -24,21 +26,34 @@ def rk4_step(f,t,x,h):
     return x+h/6 * (k1 +2*k2 + 2*k3 + k4)
 
 def integrate_rk4(f,x0,t0,t_end,h):
-    """integrate dx/dt from t0 to t_end
-    parameters
-    f:function
-    x0: initial state vector (array)
-    t0: start time (float)
-    t_end: end time (float)
-    h: step size (float)
-    
-    returns
-    t: numpy.ndarray
-    times,shape (n_steps+1,)
-    x:numpy.ndarray
-    states,shape (n_steps+1, len(x0)), row(i) is that state at time t[i]
-    
-    raises ValueError if h is not positive or t_end is not after t0
+    """Integrate dx/dt = f(t, x) from t0 to t_end with fixed-step RK4.
+
+    Parameters
+    ----------
+    f : callable
+        Right-hand side, called as ``f(t, x)``.
+    x0 : array_like
+        Initial state vector.
+    t0 : float
+        Start time [s].
+    t_end : float
+        End time [s]. If ``t_end - t0`` is not a whole number of steps,
+        the run stops at the nearest whole number of steps; check ``t[-1]``.
+    h : float
+        Step size [s]. Must be positive.
+
+    Returns
+    -------
+    t : numpy.ndarray
+        Times, shape ``(n_steps + 1,)``.
+    x : numpy.ndarray
+        States, shape ``(n_steps + 1, len(x0))``. Row ``i`` is the state
+        at time ``t[i]``.
+
+    Raises
+    ------
+    ValueError
+        If ``h`` is not positive or ``t_end`` is not after ``t0``.
     """
     if h <= 0:
         raise ValueError(f"Step size h must be positive, got {h}.")

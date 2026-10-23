@@ -23,23 +23,28 @@ P_tropopause = P0*(T_tropopause/T0)**(G0/(LAPSE_RATE*R_AIR))
 
 def isa(h):
     """Return ISA air properties at a given altitude
-    parameters
-
-    H: float
-       Altitude above mean sea level (m). Must be between H_min and H_max. 
-       Treated as geopotential altitude, below 11km this differs from geometric 
-       altitude by under 20m, which changes density by abou 0.2%.
+    Parameters
+    ----------
+    H : float
+        Altitude above mean sea level (m). Must be between H_min and H_max. 
+        Treated as geopotential altitude, below 11km this differs from geometric 
+        altitude by under 20m, which changes density by abou 0.2%.
     
     Returns
-
-    T:float, Temperature (K)
-    p : float, Pressure (Pa)
-    rho: float, density (kg/m^3)
-    a: float, speed of sound (m/s)
+    -------
+    T : float
+        Temperature [K].
+    p : float
+        Pressure [Pa].
+    rho : float
+        Density [kg/m^3].
+    a : float
+        Speed of sound [m/s].
 
     Raises
-
-    Valueerror : if h is outside the modelled range, or is NaN.
+    ------
+    ValueError
+        If ``h`` is outside the modelled range, or is NaN.
     """
 
     if not H_MIN <= h <= H_MAX:
