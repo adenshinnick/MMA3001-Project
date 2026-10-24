@@ -9,7 +9,7 @@ def rk4_step(f,t,x,h):
     
     Parameters
     ----------
-    f(callable): returns time derivitive of state as an array, same shap as x
+    f(callable): returns time derivitive of state as an array, same shape as x
     t(float): current time
     x(array): current state
     h(float): time step

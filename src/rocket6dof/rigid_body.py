@@ -84,3 +84,4 @@ def angular_momentum_earth(q,J, omega):
     
     Constant during torque-free motion, so it is a useful check"""
     return quat_to_rotation_matrix(q) @ (J @ np.asarray(omega, dtype=float))
+
