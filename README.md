@@ -10,8 +10,8 @@ The simulator predicts apogee, stability and landing point from the rocket's des
 | --- | --- |
 | RK4 integrator | Done, with tests |
 | Atmosphere model | Done |
-| Thrust and mass model | Planned |
-| Rigid-body rotation (quaternions) | Planned |
+| Thrust and mass model | Done |
+| Rigid-body rotation (quaternions) | Done |
 | Aerodynamic forces and moments | Planned |
 | Validation against flight data | Planned |
 
@@ -62,6 +62,8 @@ Tested with Python 3.13 on Windows.
 
 ```
    pip install -r requirements.txt
+
+4. pip install e .
 ```
 
 ## Running the tests
