@@ -1,27 +1,13 @@
-"""Equations of motion for the 6-DOF rocket.
+"""Equations of motion for the 13-state rocket.
 
-State vector x (13 numbers):
-x[0:3]   position, Earth frame [m] (z is height above the launch pad)
-x[3:6]   velocity, Earth frame [m/s]
-x[6:10]  attitude quaternion, body to Earth [-]
-x[10:13] angular velocity, body frame [rad/s]
-
-Equations (``make_rhs``):
-
-    dr/dt     = v
-    dv/dt     = R(q) F_body / m(t) + g
-    dq/dt     = 0.5 q * (0, omega)
-    J domega/dt = M_body - omega x (J omega)
-
-F_body is thrust (along body x) plus the aerodynamic force; M_body is the
-aerodynamic moment about the CG. Under the parachute (``make_descent_rhs``)
-the rocket is a point mass hanging from the canopy, so only position and
-velocity change.
+State: position x[0:3] and velocity x[3:6] (Earth frame, z up), attitude
+quaternion x[6:10] (body to Earth), body angular velocity x[10:13].
+Under the parachute the rocket is treated as a point mass.
 """
 import numpy as np
 
 from rocket6dof.aerodynamics import aerodynamic_loads
-from rocket6dof.atmosphere import G0, dynamic_viscosity, isa
+from rocket6dof.atmosphere import G0, isa
 from rocket6dof.quaternions import quat_derivative, quat_normalise, quat_to_rotation_matrix
 from rocket6dof.rigid_body import angular_acceleration
 
@@ -80,12 +66,11 @@ def make_rhs(rocket, gravity=GRAVITY, wind=None, launch_altitude=0.0):
         moment_body = np.zeros(3)
 
         if geom is not None:
-            T, _, rho, sound_speed = isa(launch_altitude + x[2])
+            _, _, rho, sound_speed = isa(launch_altitude + x[2])
             v_air = x[VEL] if wind is None else x[VEL] - wind(x[2])
             v_air_body = R.T @ v_air          # R is orthogonal, so R^T turns Earth into body axes
             f_aero, m_aero, _ = aerodynamic_loads(
-                geom, drag_model, v_air_body, rho, sound_speed,
-                dynamic_viscosity(T), rocket.cg(t), omega)
+                geom, drag_model, v_air_body, rho, sound_speed, rocket.cg(t), omega)
             force_body = force_body + f_aero
             moment_body = moment_body + m_aero
 
@@ -93,7 +78,7 @@ def make_rhs(rocket, gravity=GRAVITY, wind=None, launch_altitude=0.0):
         x_dot[POS] = x[VEL]
         x_dot[VEL] = R @ force_body / rocket.mass(t) + gravity
         x_dot[QUAT] = quat_derivative(q, omega)
-        x_dot[OMEGA] = angular_acceleration(rocket.inertia_at(t), omega, moment_body)
+        x_dot[OMEGA] = angular_acceleration(rocket.inertia, omega, moment_body)
         return x_dot
 
     return f

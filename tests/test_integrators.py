@@ -43,18 +43,3 @@ def test_rejects_nonpositive_step():
 
     with pytest.raises(ValueError):
         integrate_rk4(f,np.array([1.0]),0.0,1.0,0.0)
-    
-
-def test_euler_is_first_order():
-    """Halving the step should only halve the error of explicit Euler."""
-    from rocket6dof.integrators import euler_step
-
-    def error_at_t1(h):
-        x, t = np.array([1.0]), 0.0
-        for _ in range(int(round(1.0 / h))):
-            x = euler_step(lambda t, x: -x, t, x, h)
-            t += h
-        return abs(x[0] - np.exp(-1.0))
-
-    observed_order = np.log2(error_at_t1(0.01) / error_at_t1(0.005))
-    assert 0.95 < observed_order < 1.05

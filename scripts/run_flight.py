@@ -32,7 +32,7 @@ def main():
     parser.add_argument("--azimuth", type=float, default=90.0,
                         help="direction the rail leans towards, clockwise from north [deg]")
     parser.add_argument("--rail", type=float, default=1.0, help="rail length [m]")
-    parser.add_argument("--wind", type=float, default=0.0, help="wind speed at 10 m [m/s]")
+    parser.add_argument("--wind", type=float, default=0.0, help="wind speed [m/s]")
     parser.add_argument("--wind-from", type=float, default=270.0,
                         help="direction the wind blows from, clockwise from north [deg]")
     parser.add_argument("--site-altitude", type=float, default=0.0, help="launch site altitude [m]")
@@ -41,7 +41,7 @@ def main():
     args = parser.parse_args()
 
     rocket = load_rocket(args.rocket)
-    wind = Wind(args.wind, args.wind_from, exponent=1.0 / 7.0) if args.wind > 0 else None
+    wind = Wind(args.wind, args.wind_from) if args.wind > 0 else None
     result = simulate(rocket, launch_attitude(args.elevation, args.azimuth), rail_length=args.rail,
                       h=args.h, h_descent=args.h_descent, wind=wind,
                       launch_altitude=args.site_altitude)

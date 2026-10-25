@@ -1,9 +1,8 @@
 from pathlib import Path
 
-import numpy as np
 import pytest
 
-from rocket6dof.aerodynamics import ConstantDrag
+from rocket6dof.aerodynamics import ConstantDrag, MachDrag
 from rocket6dof.config import load_rocket
 
 ROCKET_FILE = Path(__file__).parent.parent / "data" / "rocket" / "l1_rocket.toml"
@@ -19,10 +18,11 @@ def test_loads_l1_rocket_and_matches_openrocket_mass_properties():
     assert rocket.cg(5.0) == pytest.approx(0.35703, abs=5e-4)
     assert rocket.motor.name == "H182"
     assert rocket.parachute.diameter == 1.2
+    assert isinstance(rocket.drag_model, MachDrag)
 
 
 def test_constant_drag_option():
-    rocket = load_rocket(ROCKET_FILE, drag=0.5)
+    rocket = load_rocket(ROCKET_FILE, constant_cd=0.5)
     assert isinstance(rocket.drag_model, ConstantDrag)
 
 
