@@ -1,0 +1,557 @@
+{
+  "validation": {
+    "openrocket": {
+      "apogee": 1013.5688136,
+      "t_apogee": 12.664,
+      "max_speed": 225.743,
+      "rail_exit_speed": 19.145,
+      "burnout_t": 1.235,
+      "landing_t": 272.995,
+      "landing_speed": 3.804,
+      "rail_exit_height": 1.0643616
+    },
+    "runs": {
+      "Build-up C_D (selected)": {
+        "apogee": 1015.6503346785518,
+        "t_apogee": 12.69062550289545,
+        "max_speed": 225.89246706456402,
+        "max_mach": 0.6648561086490232,
+        "rail_exit_speed": 18.531733104491316,
+        "burnout_t": 1.235,
+        "landing_t": 273.5116252978575,
+        "landing_distance": 3.645542195765631e-13,
+        "landing_speed": 3.804063249396605,
+        "n_steps": 3251,
+        "n_rhs": 13010,
+        "rmse_ascent": 1.4498559667405364,
+        "rmse_flight": 2.0016821433955303
+      },
+      "OpenRocket C_D table": {
+        "apogee": 1013.4410769749267,
+        "t_apogee": 12.68398142735823,
+        "max_speed": 225.7028017196499,
+        "max_mach": 0.6642977422877657,
+        "rail_exit_speed": 18.531806885553287,
+        "burnout_t": 1.235,
+        "landing_t": 272.95210869356094,
+        "landing_distance": 3.5296065185785413e-13,
+        "landing_speed": 3.8040632493971986,
+        "n_steps": 3245,
+        "n_rhs": 12986,
+        "rmse_ascent": 0.055509022754595,
+        "rmse_flight": 0.09419100540173546
+      }
+    },
+    "apogee_error_pct": 0.20536554110801808,
+    "apogee_error_pct_or_drag": -0.012602659371458326,
+    "apogee_standard_gravity": 1014.994832700961,
+    "rail_exit_speed_at_or_height": 19.14648914194566,
+    "or_cd_fit": {
+      "c0": 0.4728072393873686,
+      "c2": 0.1310886884136612,
+      "c4": 0.07130820524419662,
+      "rms": 0.00031206639075347304
+    },
+    "acceptance_tolerance_pct": 5.0,
+    "cp_max_difference_mm": 1.1423379028324687,
+    "stability_at_rail_exit": 2.311326078226104,
+    "cd_difference_pct_max": 1.8510106429335058,
+    "cd_difference_pct_mean": 0.13070867726001595
+  },
+  "convergence": {
+    "reference_apogee": 1014.9948345171696,
+    "h": [
+      0.32,
+      0.16,
+      0.08,
+      0.04,
+      0.02,
+      0.01,
+      0.005
+    ],
+    "none": [
+      52.58357081643862,
+      8.502509900125574,
+      3.4853124598647582,
+      0.4165155582392117,
+      0.2405195341398212,
+      0.057661730091240315,
+      0.017891558644237193
+    ],
+    "burnout": [
+      27.315540419607146,
+      4.917285372080755,
+      3.3225461048882607,
+      0.690901410787319,
+      0.07566677886836715,
+      0.07139471800371666,
+      0.018414365292073853
+    ],
+    "thrust_points": [
+      0.005139391107377378,
+      0.0006570354803443479,
+      0.00017722358916216763,
+      0.00011582949207422644,
+      1.8162086234951857e-06,
+      1.938986315508373e-06,
+      4.0143527257896494e-07
+    ],
+    "euler_h": [
+      0.02,
+      0.01,
+      0.005,
+      0.0025
+    ],
+    "euler": [
+      1.0174445599791397,
+      0.14013566759172136,
+      0.12503810945281657,
+      0.06569624242820282
+    ],
+    "euler_order": [
+      2.860054079882272,
+      0.16445632954051967,
+      0.9284851089756135
+    ],
+    "rk4_order": [
+      2.9675542610963945,
+      1.8904006340218737,
+      0.6135680113600541,
+      5.994928892476795,
+      -0.09437269054909767,
+      2.272063330122199
+    ],
+    "wind_h": [
+      0.1,
+      0.09,
+      0.08,
+      0.07,
+      0.06,
+      0.05,
+      0.04,
+      0.03,
+      0.02,
+      0.01,
+      0.005
+    ],
+    "wind_error": [
+      NaN,
+      NaN,
+      NaN,
+      0.07277886824740892,
+      0.004300483011519881,
+      0.008641587103133726,
+      0.007445646058581864,
+      0.0014209226747163878,
+      0.00018555567832167938,
+      4.110949337966006e-05,
+      3.3752913537642914e-06
+    ],
+    "wind_unstable_h": [
+      0.1,
+      0.09,
+      0.08
+    ],
+    "pitch_omega_n": 48.83815034615714,
+    "rk4_stability_h": 0.057946502476883426
+  },
+  "integrators": [
+    {
+      "method": "RK4",
+      "setting": 0.32,
+      "error_m": 0.005139391107377378,
+      "n_rhs": 212,
+      "runtime_s": 0.01547079998999834
+    },
+    {
+      "method": "RK4",
+      "setting": 0.16,
+      "error_m": 0.0006570354803443479,
+      "n_rhs": 364,
+      "runtime_s": 0.025051400007214397
+    },
+    {
+      "method": "RK4",
+      "setting": 0.08,
+      "error_m": 0.00017722358916216763,
+      "n_rhs": 676,
+      "runtime_s": 0.04462729999795556
+    },
+    {
+      "method": "RK4",
+      "setting": 0.04,
+      "error_m": 0.00011582949207422644,
+      "n_rhs": 1304,
+      "runtime_s": 0.08536889997776598
+    },
+    {
+      "method": "RK4",
+      "setting": 0.02,
+      "error_m": 1.8162086234951857e-06,
+      "n_rhs": 2572,
+      "runtime_s": 0.1687792000011541
+    },
+    {
+      "method": "RK4",
+      "setting": 0.01,
+      "error_m": 1.938986315508373e-06,
+      "n_rhs": 5104,
+      "runtime_s": 0.34157569997478276
+    },
+    {
+      "method": "Euler",
+      "setting": 0.02,
+      "error_m": 1.0174445599791397,
+      "n_rhs": 646,
+      "runtime_s": 0.045905200007837266
+    },
+    {
+      "method": "Euler",
+      "setting": 0.01,
+      "error_m": 0.14013566759172136,
+      "n_rhs": 1279,
+      "runtime_s": 0.09104830003343523
+    },
+    {
+      "method": "Euler",
+      "setting": 0.005,
+      "error_m": 0.12503810945281657,
+      "n_rhs": 2547,
+      "runtime_s": 0.18174620001809672
+    },
+    {
+      "method": "Euler",
+      "setting": 0.0025,
+      "error_m": 0.06569624242820282,
+      "n_rhs": 5084,
+      "runtime_s": 0.3589771999977529
+    },
+    {
+      "method": "Euler",
+      "setting": 0.00125,
+      "error_m": 0.04966299159832488,
+      "n_rhs": 10157,
+      "runtime_s": 0.7197152999578975
+    },
+    {
+      "method": "RK45",
+      "setting": 0.001,
+      "error_m": 1.7134949760139762,
+      "n_rhs": 218,
+      "runtime_s": 0.020205100008752197
+    },
+    {
+      "method": "RK45",
+      "setting": 0.0001,
+      "error_m": 0.08911002400952839,
+      "n_rhs": 230,
+      "runtime_s": 0.02209809998748824
+    },
+    {
+      "method": "RK45",
+      "setting": 1e-05,
+      "error_m": 0.010376789672818632,
+      "n_rhs": 278,
+      "runtime_s": 0.02492940000956878
+    },
+    {
+      "method": "RK45",
+      "setting": 1e-06,
+      "error_m": 0.0006381317879231574,
+      "n_rhs": 314,
+      "runtime_s": 0.03224009997211397
+    },
+    {
+      "method": "RK45",
+      "setting": 1e-07,
+      "error_m": 0.00018404713978270593,
+      "n_rhs": 392,
+      "runtime_s": 0.03264359995955601
+    },
+    {
+      "method": "RK45",
+      "setting": 1e-08,
+      "error_m": 1.4829824749540421e-05,
+      "n_rhs": 470,
+      "runtime_s": 0.04026440001325682
+    },
+    {
+      "method": "RK45",
+      "setting": 1e-09,
+      "error_m": 4.795031145476969e-07,
+      "n_rhs": 596,
+      "runtime_s": 0.04871350002940744
+    }
+  ],
+  "drag_models": {
+    "Constant C_D = 0.475 (low-speed value)": {
+      "apogee": 1049.4448200541729,
+      "error_pct": 3.5395728413099286,
+      "max_speed": 227.53266894621123,
+      "t_apogee": 12.890850430408687
+    },
+    "Build-up C_D(M, Re) (selected)": {
+      "apogee": 1015.6503346785518,
+      "error_pct": 0.20536554110801808,
+      "max_speed": 225.89246706456402,
+      "t_apogee": 12.69062550289545
+    },
+    "OpenRocket C_D(M) table": {
+      "apogee": 1013.4410769749267,
+      "error_pct": -0.012602659371458326,
+      "max_speed": 225.7028017196499,
+      "t_apogee": 12.68398142735823
+    }
+  },
+  "attitude": {
+    "rail 80 deg": {
+      "euler_max_error_deg": 0.0021026997637695016,
+      "euler_failed": false,
+      "quaternion_max_error_deg": 0.0020957943260352867
+    },
+    "rail 88 deg": {
+      "euler_max_error_deg": 0.0024278998828837343,
+      "euler_failed": false,
+      "quaternion_max_error_deg": 0.00228980404759828
+    },
+    "rail 89.9 deg": {
+      "euler_max_error_deg": 0.09356511386863776,
+      "euler_failed": false,
+      "quaternion_max_error_deg": 0.0023290719734104038
+    },
+    "rail 90 deg": {
+      "euler_max_error_deg": 0.14124755720367627,
+      "euler_failed": false,
+      "quaternion_max_error_deg": 0.0023310456642867588
+    }
+  },
+  "wind": {
+    "0 m/s": {
+      "apogee": 1014.994832700961,
+      "apogee_x": -3.5108800990420115e-13,
+      "landing_x": -3.643774906825715e-13,
+      "max_aoa_after_rail_deg": 3.103227768197086e-15
+    },
+    "3 m/s": {
+      "apogee": 1010.2754469909925,
+      "apogee_x": -60.24036800490193,
+      "landing_x": 1252.9613095350712,
+      "max_aoa_after_rail_deg": 6.645629941142095
+    },
+    "6 m/s": {
+      "apogee": 996.0452068749305,
+      "apogee_x": -118.62643016426324,
+      "landing_x": 2468.6653293627605,
+      "max_aoa_after_rail_deg": 13.117286772341215
+    }
+  },
+  "sensitivity": {
+    "nominal_apogee": 1014.994832700961,
+    "rows": [
+      {
+        "input": "Drag coefficient",
+        "range": "-10 % / +10 %",
+        "apogee_low": 60.544994456633844,
+        "apogee_high": -52.741726715094615,
+        "landing_low": 3.896202738055972e-13,
+        "landing_high": 3.426575511982905e-13
+      },
+      {
+        "input": "Launch site altitude",
+        "range": "0 / 1000 m",
+        "apogee_low": 0.0,
+        "apogee_high": 55.487474386949884,
+        "landing_low": 3.643774906825715e-13,
+        "landing_high": 3.883023096375768e-13
+      },
+      {
+        "input": "Thrust (impulse)",
+        "range": "-3 % / +3 %",
+        "apogee_low": -25.948968036259885,
+        "apogee_high": 25.271741078015452,
+        "landing_low": 3.5722981498194586e-13,
+        "landing_high": 3.712853104077449e-13
+      },
+      {
+        "input": "Wind speed at 10 m",
+        "range": "0 / 6 m/s",
+        "apogee_low": 0.0,
+        "apogee_high": -18.949625826030456,
+        "landing_low": 3.643774906825715e-13,
+        "landing_high": 2468.6653293627605
+      },
+      {
+        "input": "Dry mass",
+        "range": "-5 % / +5 %",
+        "apogee_low": 9.487968722490791,
+        "apogee_high": -11.130465316887012,
+        "landing_low": 3.630950681343043e-13,
+        "landing_high": 3.6494095536160247e-13
+      },
+      {
+        "input": "Rail elevation",
+        "range": "85 / 90 deg",
+        "apogee_low": -7.3676966284212995,
+        "apogee_high": 0.0,
+        "landing_low": 146.9358369242789,
+        "landing_high": 3.643774906825715e-13
+      },
+      {
+        "input": "Gravity model",
+        "range": "9.80665 / 9.7922 m/s^2",
+        "apogee_low": 0.0,
+        "apogee_high": 0.6555019775908022,
+        "landing_low": 0.0,
+        "landing_high": 0.0
+      }
+    ]
+  },
+  "monte_carlo": {
+    "n": 300,
+    "workers": 32,
+    "seconds": 17.587659000011627,
+    "apogee_mean": 1004.713681459124,
+    "apogee_std": 34.01835286274316,
+    "apogee_p5": 956.5866050088691,
+    "apogee_p95": 1061.4609354373276,
+    "landing_distance_median": 1273.0621978948238,
+    "landing_distance_p95": 2301.708821424393,
+    "correlations": {
+      "cd_factor": {
+        "apogee": -0.8196210433309219,
+        "landing_distance": 0.04055417765273856
+      },
+      "mass_factor": {
+        "apogee": -0.1439645880492678,
+        "landing_distance": -0.10571202376011583
+      },
+      "thrust_factor": {
+        "apogee": 0.4802967757126819,
+        "landing_distance": -0.023753971168153892
+      },
+      "wind_speed": {
+        "apogee": -0.25882008574781923,
+        "landing_distance": 0.9914744649639526
+      },
+      "elevation": {
+        "apogee": 0.016956479816684716,
+        "landing_distance": 0.03967961812265011
+      }
+    }
+  },
+  "performance": {
+    "profile_before": [
+      {
+        "function": "numeric.py:cross",
+        "own_time_s": 0.1634871,
+        "share_pct": 14.550752132988174
+      },
+      {
+        "function": "numeric.py:normalize_axis_tuple",
+        "own_time_s": 0.11845330000000001,
+        "share_pct": 10.542633685682162
+      },
+      {
+        "function": "numeric.py:moveaxis",
+        "own_time_s": 0.0797678,
+        "share_pct": 7.099529479657869
+      },
+      {
+        "function": "dynamics.py:f",
+        "own_time_s": 0.0777414,
+        "share_pct": 6.919174918825319
+      },
+      {
+        "function": "quaternions.py:quat_multiply",
+        "own_time_s": 0.048953500000000004,
+        "share_pct": 4.356981343128826
+      },
+      {
+        "function": "aerodynamics.py:aerodynamic_loads",
+        "own_time_s": 0.0431705,
+        "share_pct": 3.8422801857587907
+      },
+      {
+        "function": "rocket.py:inertia_at",
+        "own_time_s": 0.042926200000000005,
+        "share_pct": 3.820536887687634
+      },
+      {
+        "function": "_linalg.py:solve",
+        "own_time_s": 0.036514200000000004,
+        "share_pct": 3.249853190461858
+      }
+    ],
+    "profile_total_before": 1.1235645999999997,
+    "np_cross_share_pct": 44.31378489496734,
+    "rhs_us_before": 134.61085001472384,
+    "flight_s_before": 1.5463281000265852,
+    "flight_rhs_before": 109294,
+    "profile_after": [
+      {
+        "function": "dynamics.py:f",
+        "own_time_s": 0.069658,
+        "share_pct": 12.374835761353156
+      },
+      {
+        "function": "quaternions.py:quat_multiply",
+        "own_time_s": 0.038522900000000006,
+        "share_pct": 6.843644097605897
+      },
+      {
+        "function": "rocket.py:inertia_at",
+        "own_time_s": 0.0384875,
+        "share_pct": 6.837355240820575
+      },
+      {
+        "function": "aerodynamics.py:aerodynamic_loads",
+        "own_time_s": 0.0374777,
+        "share_pct": 6.657962936249464
+      },
+      {
+        "function": "_linalg.py:solve",
+        "own_time_s": 0.032193200000000005,
+        "share_pct": 5.719164527152581
+      },
+      {
+        "function": "_twodim_base_impl.py:diag",
+        "own_time_s": 0.0208408,
+        "share_pct": 3.702395663602298
+      },
+      {
+        "function": "quaternions.py:quat_to_rotation_matrix",
+        "own_time_s": 0.018913600000000003,
+        "share_pct": 3.360026036577695
+      },
+      {
+        "function": "rigid_body.py:angular_acceleration",
+        "own_time_s": 0.0188421,
+        "share_pct": 3.347323967081919
+      }
+    ],
+    "profile_total_after": 0.5629004000000003,
+    "rhs_us_after": 67.2278499987442,
+    "flight_s_after": 0.27165060001425445,
+    "flight_rhs_after": 12994,
+    "landing_difference_s": 1.7263954987356556e-05,
+    "apogee_difference_m": 1.2277769201318733e-07,
+    "flops_per_rhs": 381,
+    "flop_breakdown": {
+      "quat_to_rotation_matrix": 33,
+      "R^T v_air, R F / m + g": 36,
+      "isa (troposphere) + viscosity": 20,
+      "aerodynamic_loads (drag, normal force, CP, damping)": 140,
+      "quat_derivative (quaternion product)": 32,
+      "inertia_at (motor + parallel axis)": 35,
+      "angular_acceleration (J w, cross, 3x3 solve)": 60,
+      "thrust, mass, CG (interpolation)": 25
+    },
+    "mflops_achieved": 5.6672941349026775,
+    "state_bytes": 104,
+    "history_bytes_full_flight": 363776,
+    "batch_serial_s": 21.19539349997649,
+    "batch_parallel_s": 10.342544700019062,
+    "batch_size": 64,
+    "workers": 32
+  }
+}
