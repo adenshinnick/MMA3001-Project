@@ -12,13 +12,17 @@ from rocket6dof.atmosphere import isa
 
 # Multipliers that convert the units in the export to SI.
 UNIT_TO_SI = {"s": 1.0, "m": 1.0, "ft": 0.3048, "cm": 0.01, "m/s": 1.0, "ft/s": 0.3048,
-              "m/s²": 1.0, "kg": 1.0, "g": 0.001, "": 1.0, "​": 1.0}
+              "m/s²": 1.0, "kg": 1.0, "g": 0.001, "": 1.0, "​": 1.0,
+              "rad": 1.0, "°": np.pi / 180, "rad/s": 1.0, "r/s": 1.0, "°/s": np.pi / 180}
 
 # Short names for the columns used here.
 COLUMN_NAMES = {"Time": "t", "Altitude": "altitude", "Vertical velocity": "vz",
                 "Total velocity": "speed", "Total acceleration": "acceleration",
                 "Mass": "mass", "CP location": "cp", "CG location": "cg",
-                "Stability margin calibers": "stability"}
+                "Stability margin calibers": "stability",
+                "Vertical orientation (zenith)": "zenith", "Angle of attack": "aoa",
+                "Position East of launch": "east", "Position North of launch": "north",
+                "Pitch rate": "pitch_rate"}
 
 # Gravity in the OpenRocket run: its latitude-dependent value at the
 # benchmark's launch latitude (28.61 deg), instead of the standard 9.80665.
@@ -62,7 +66,9 @@ def load_openrocket_csv(path):
     table = np.array(rows)
     data = {}
     for k, column in enumerate(header):
-        name, unit = re.match(r"(.*?)\s*\((.*)\)", column).groups()
+        # The unit is the last bracket: "Vertical orientation (zenith) (°)".
+        name, unit = re.match(r"(.*)\(([^()]*)\)$", column).groups()
+        name = name.strip()
         if unit not in UNIT_TO_SI:
             raise ValueError(f"{path}: column '{column}' has a unit ('{unit}') this loader "
                              "does not know; re-export in SI units")

@@ -297,6 +297,30 @@ def air_speed_and_mach(result):
     return np.array(speed), np.array(mach)
 
 
+def attitude_history(result):
+    """Tilt from vertical and angle of attack [deg] at every stored time.
+
+    The nose direction in the Earth frame is the body x axis rotated by the
+    attitude quaternion. The tilt is its angle from straight up. The angle of
+    attack is the angle between the nose and the air-relative velocity
+    (velocity minus wind): zero when the rocket points straight into the
+    airflow it feels. Where there is no airflow the angle of attack is
+    undefined and is returned as NaN.
+    """
+    wind = result["settings"]["wind"]
+    tilt, aoa = [], []
+    for row in result["x"]:
+        nose = quat_to_rotation_matrix(row[QUAT]) @ np.array([1.0, 0.0, 0.0])
+        tilt.append(np.degrees(np.arccos(np.clip(nose[2], -1.0, 1.0))))
+        v_air = row[VEL] if wind is None else row[VEL] - wind(row[2])
+        speed = np.linalg.norm(v_air)
+        if speed < 1e-6:                  # no airflow (on the pad, or exactly at apogee)
+            aoa.append(np.nan)
+        else:
+            aoa.append(np.degrees(np.arccos(np.clip(np.dot(nose, v_air) / speed, -1.0, 1.0))))
+    return np.array(tilt), np.array(aoa)
+
+
 def summarise(result):
     """Headline numbers from a flight, as a dict (missing events give NaN)."""
     ev = result["events"]

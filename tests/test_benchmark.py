@@ -25,6 +25,15 @@ def test_units_are_converted_to_si(tmp_path):
     assert events == {"LAUNCH": 0.0, "APOGEE": 1.5}
 
 
+def test_angles_are_converted_to_radians(tmp_path):
+    path = tmp_path / "run.csv"
+    path.write_text("# Time (s),Vertical orientation (zenith) (°),Pitch rate (°/s)\n0,90,180\n",
+                    encoding="utf-8")
+    data, _ = load_openrocket_csv(path)
+    assert data["zenith"][0] == pytest.approx(np.pi / 2)
+    assert data["pitch_rate"][0] == pytest.approx(np.pi)
+
+
 def test_unknown_unit_is_refused(tmp_path):
     path = tmp_path / "run.csv"
     path.write_text(CSV.replace("Mass (g)", "Mass (stone)"), encoding="utf-8")

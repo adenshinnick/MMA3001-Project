@@ -28,13 +28,22 @@ from rocket6dof.atmosphere import isa
 from rocket6dof.benchmark import (G_OPENROCKET, infer_drag_coefficient, load_openrocket_csv,
                                   rms_difference)
 from rocket6dof.config import load_rocket
-from rocket6dof.simulation import air_speed_and_mach, launch_attitude, simulate, summarise
+from rocket6dof.simulation import (air_speed_and_mach, attitude_history, launch_attitude,
+                                   simulate, summarise)
 from rocket6dof.wind import Wind
 
 ROOT = Path(__file__).resolve().parent.parent
 FIGURES = ROOT / "reports" / "figures"
 ROCKET_FILE = ROOT / "data" / "rocket" / "l1_rocket.toml"
 BENCHMARK_FILE = ROOT / "data" / "benchmark" / "L1_benchmark.csv"
+# Second OpenRocket run: same rocket, 1.0 m vertical rod, 5 m/s wind, no
+# turbulence (entered in OpenRocket as direction 270 deg). In that run the
+# rocket turned into the wind and flew east, so the wind came from the east:
+# OpenRocket's direction is where the wind blows towards. The simulator uses
+# the direction it comes from, so the matching input here is 90 deg.
+# If the file is missing, the attitude figure shows this simulator only.
+WIND_BENCHMARK_FILE = ROOT / "data" / "benchmark" / "L1_benchmark_wind.csv"
+WIND_SPEED, WIND_FROM = 5.0, 90.0    # [m/s], [deg] (90 = from the east)
 
 G_OR = np.array([0.0, 0.0, -G_OPENROCKET])   # gravity used in the OpenRocket run
 H_SELECTED = 0.02         # ascent step chosen from the convergence study [s]
@@ -269,7 +278,59 @@ def sensitivity(rocket):
 
 
 # ---------------------------------------------------------------------------
-# 5. Performance: profiling, FLOPs, before/after
+# 5. Attitude in a crosswind
+# ---------------------------------------------------------------------------
+
+def attitude(rocket):
+    """Tilt, angle of attack and flight path in a crosswind, from rail exit to
+    apogee. In the vertical, still-air benchmark the rocket never rotates, so
+    this is the case that shows the rotational half of the model working."""
+    print("5. Attitude in a crosswind")
+    res = simulate(rocket, VERTICAL, h=H_SELECTED, gravity=G_OR,
+                   wind=Wind(WIND_SPEED, WIND_FROM), stop_at_apogee=True)
+    t, x = res["t"], res["x"]
+    tilt, aoa = attitude_history(res)
+    t_exit = res["events"]["rail_exit"]["t"]
+    free = t >= t_exit                       # on the rail the rocket cannot turn
+
+    have_or = WIND_BENCHMARK_FILE.exists()
+    if have_or:
+        d, ev = load_openrocket_csv(WIND_BENCHMARK_FILE)
+        up = (d["t"] >= ev["LAUNCHROD"]) & (d["t"] <= ev["APOGEE"])
+        # OpenRocket's "vertical orientation (zenith)" is 90 deg when the
+        # rocket points straight up, so the tilt from vertical is 90 - zenith.
+        d["tilt"] = 90.0 - np.degrees(d["zenith"])
+
+    fig, axes = plt.subplots(1, 3, figsize=(10, 3.2))
+    axes[0].plot(t[free], tilt[free], color=SIM, label="This simulator")
+    axes[1].plot(t[free], aoa[free], color=SIM, label="This simulator")
+    axes[2].plot(x[:, 0], x[:, 2], color=SIM, label="This simulator")
+    if have_or:
+        axes[0].plot(d["t"][up], d["tilt"][up], "--", color=OPENROCKET, label="OpenRocket")
+        axes[1].plot(d["t"][up], np.degrees(d["aoa"][up]), "--", color=OPENROCKET, label="OpenRocket")
+        axes[2].plot(d["east"][up], d["altitude"][up], "--", color=OPENROCKET, label="OpenRocket")
+    axes[0].set(xlabel="Time [s]", ylabel="Tilt from vertical [deg]", title="Attitude (tilt)")
+    axes[1].set(xlabel="Time [s]", ylabel="Angle of attack [deg]", title="Angle of attack",
+                xlim=(0, 3))
+    axes[2].set(xlabel="East of pad [m]", ylabel="Altitude [m]", title="Flight path (side view)")
+    axes[0].legend(fontsize=7)
+    fig.suptitle(f"{WIND_SPEED:.0f} m/s wind from the east, vertical rail", fontsize=9)
+    save(fig, "attitude.png")
+
+    # Angle of attack 0.5 s after rail exit, as a measure of how fast it turns into the wind.
+    out = {"aoa_at_rail_exit": float(aoa[free][0]),
+           "aoa_half_second_after_exit": float(np.interp(t_exit + 0.5, t, aoa)),
+           "tilt_at_apogee": float(tilt[-1]), "apogee": float(x[-1, 2]),
+           "east_at_apogee": float(x[-1, 0]), "openrocket": None}
+    if have_or:
+        out["openrocket"] = {"tilt_at_apogee": float(np.interp(ev["APOGEE"], d["t"], d["tilt"])),
+                             "apogee": float(np.max(d["altitude"])),
+                             "east_at_apogee": float(np.interp(ev["APOGEE"], d["t"], d["east"]))}
+    results["attitude"] = out
+
+
+# ---------------------------------------------------------------------------
+# 6. Performance: profiling, FLOPs, before/after
 # ---------------------------------------------------------------------------
 
 def profile_top(rocket, n=8):
@@ -285,7 +346,7 @@ def profile_top(rocket, n=8):
 
 
 def performance(rocket):
-    print("5. Performance")
+    print("6. Performance")
     out = {}
     out["profile"], out["profile_total_s"] = profile_top(rocket)
     out["rhs_us"] = 1e6 * time_rhs(rocket)
@@ -350,6 +411,15 @@ def write_markdown():
     for r in s["rows"]:
         lines.append(f"| {r['input']} | {r['range']} | {r['apogee_low']:+.1f} / {r['apogee_high']:+.1f} | "
                      f"{r['landing_low']:.0f} / {r['landing_high']:.0f} |")
+    a = results["attitude"]
+    lines += ["", f"## Attitude in a {WIND_SPEED:.0f} m/s crosswind (rail exit to apogee)", "",
+              "| Quantity | This simulator | OpenRocket |", "| --- | --- | --- |"]
+    o = a["openrocket"] or {}
+    for key, name in [("apogee", "Apogee [m]"), ("east_at_apogee", "East of pad at apogee [m]"),
+                      ("tilt_at_apogee", "Tilt from vertical at apogee [deg]")]:
+        lines.append(f"| {name} | {a[key]:.1f} | " + (f"{o[key]:.1f}" if key in o else "not run") + " |")
+    lines += ["", f"- Angle of attack at rail exit {a['aoa_at_rail_exit']:.1f} deg, "
+              f"0.5 s later {a['aoa_half_second_after_exit']:.2f} deg"]
     p = results["performance"]
     lines += ["", "## Performance", "",
               "| Measure | Original settings (h = 0.01 s throughout) | Selected (h = 0.02 s, descent 0.1 s) |",
@@ -379,6 +449,7 @@ def main():
     convergence(rocket)
     drag_models(rocket, data)
     sensitivity(rocket)
+    attitude(rocket)
     performance(rocket)
     write_markdown()
     print(f"Done in {time.perf_counter() - start:.0f} s")

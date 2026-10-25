@@ -54,27 +54,37 @@
 | Rail elevation | 85 / 90 deg | -7.4 / +0.0 | 147 / 0 |
 | Gravity model | 9.80665 / 9.7922 m/s^2 | +0.0 / +0.7 | 0 / 0 |
 
+## Attitude in a 5 m/s crosswind (rail exit to apogee)
+
+| Quantity | This simulator | OpenRocket |
+| --- | --- | --- |
+| Apogee [m] | 999.7 | 1001.5 |
+| East of pad at apogee [m] | 139.0 | 121.3 |
+| Tilt from vertical at apogee [deg] | 84.8 | 83.3 |
+
+- Angle of attack at rail exit 15.1 deg, 0.5 s later 0.32 deg
+
 ## Performance
 
 | Measure | Original settings (h = 0.01 s throughout) | Selected (h = 0.02 s, descent 0.1 s) |
 | --- | --- | --- |
 | Full flight, RHS calls | 109084 | 12980 |
-| Full flight, run time [s] | 1.74 | 0.36 |
+| Full flight, run time [s] | 1.18 | 0.22 |
 
 - Apogee difference: 0.0000 m; landing time difference 0.0000 s
-- One right-hand-side call: 65.4 us; numpy.cross 16.7 us per call against cross3 2.0 us
-- Estimated 381 FLOP per RHS call -> 5.8 MFLOP/s achieved
+- One right-hand-side call: 76.7 us; numpy.cross 14.7 us per call against cross3 1.2 us
+- Estimated 381 FLOP per RHS call -> 5.0 MFLOP/s achieved
 - Full-flight history 355 kB
 
-Profile of one ascent (0.53 s, own time):
+Profile of one ascent (0.63 s, own time):
 
 | Function | Share |
 | --- | --- |
-| dynamics.py:f | 13.6 % |
-| aerodynamics.py:aerodynamic_loads | 8.6 % |
-| quaternions.py:quat_multiply | 7.9 % |
-| _linalg.py:solve | 6.8 % |
+| dynamics.py:f | 13.8 % |
+| aerodynamics.py:aerodynamic_loads | 8.5 % |
+| quaternions.py:quat_multiply | 8.3 % |
+| _linalg.py:solve | 7.0 % |
 | quaternions.py:quat_to_rotation_matrix | 4.4 % |
-| rigid_body.py:angular_acceleration | 3.8 % |
-| quaternions.py:quat_derivative | 3.6 % |
-| ~:<built-in method numpy.array> | 3.4 % |
+| rigid_body.py:angular_acceleration | 3.9 % |
+| quaternions.py:quat_derivative | 3.8 % |
+| integrators.py:rk4_step | 3.5 % |

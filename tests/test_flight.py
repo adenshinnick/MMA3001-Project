@@ -9,7 +9,8 @@ from rocket6dof.config import load_rocket
 from rocket6dof.dynamics import OMEGA, make_rhs, make_state
 from rocket6dof.motor import Motor
 from rocket6dof.rocket import Rocket
-from rocket6dof.simulation import launch_attitude, liftoff_time, simulate, summarise
+from rocket6dof.simulation import (attitude_history, launch_attitude, liftoff_time, simulate,
+                                   summarise)
 from rocket6dof.wind import Wind
 
 ROCKET = load_rocket(Path(__file__).parent.parent / "data" / "rocket" / "l1_rocket.toml")
@@ -69,6 +70,15 @@ def test_rocket_weathercocks_into_the_wind():
     result = simulate(ROCKET, VERTICAL, h=0.02, h_descent=0.1, wind=Wind(5.0, 270.0))
     assert result["events"]["apogee"]["position"][0] < -10.0
     assert result["events"]["landing"]["position"][0] > 100.0
+
+
+def test_attitude_history_vertical_and_tilted():
+    """Straight up in still air: no tilt, no angle of attack. From an 80 deg
+    rail the rocket starts tilted 10 deg from vertical."""
+    tilt, aoa = attitude_history(simulate(ROCKET, VERTICAL, h=0.02, stop_at_apogee=True))
+    assert np.max(tilt) < 1e-6 and np.nanmax(aoa) < 1e-6
+    tilt, _ = attitude_history(simulate(ROCKET, launch_attitude(80.0), h=0.02, stop_at_apogee=True))
+    assert tilt[0] == pytest.approx(10.0)
 
 
 def test_stops_when_leaving_the_aerodynamic_model():
