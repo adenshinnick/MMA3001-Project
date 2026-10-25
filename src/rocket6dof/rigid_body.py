@@ -13,12 +13,12 @@ Eulers equation in the body frame:
 
 import numpy as np
 
-from rocket6dof.quaternions import quat_to_rotation_matrix
+from rocket6dof.quaternions import cross3, quat_to_rotation_matrix
 
 def validate_inertia(J, tol=1e-9):
     """Check that J is a physically valid inertia tensor,
     
-    Call this once hwen a rocket is set up, not inside f(t,x), so the check
+    Call this once when a rocket is set up, not inside f(t,x), so the check
     does not slow down every step.
     
     Parameters
@@ -37,11 +37,11 @@ def validate_inertia(J, tol=1e-9):
     ------
     ValueError
         If J is not 3x3, not symmetric, not positive definite, or its
-        principal moments breakt the triangle inequality
+        principal moments break the triangle inequality
     """
     J = np.asarray(J, dtype=float)
     if J.shape != (3,3):
-        raise ValueError(f"Inertia tensor mst be 3x3, got shape {J.shape}.")
+        raise ValueError(f"Inertia tensor must be 3x3, got shape {J.shape}.")
     scale = np.max(np.abs(J))
     if not np.allclose(J, J.T, rtol = 0.0, atol= tol*scale):
         raise ValueError("Inertia tensor must be symmetric")
@@ -58,7 +58,7 @@ def angular_acceleration(J, omega, moment):
     Parameters
     ----------
     J : numpy.ndarray
-        Inertia tensor [kg m^3], 3x3, already validated
+        Inertia tensor [kg m^2], 3x3, already validated
     omega: array_like
         Body angular velocity [rad/s]
     moment : array_like
@@ -71,16 +71,16 @@ def angular_acceleration(J, omega, moment):
     """
     omega = np.asarray(omega, dtype = float)
     L_body = J @ omega              #angular momentum, body axes
-    rhs = np.asarray(moment, dtype = float) - np.cross(omega, L_body)
+    rhs = np.asarray(moment, dtype = float) - cross3(omega, L_body)
     return np.linalg.solve(J, rhs)  # solves J @ omega_dot = rhs
 
 def rotational_kinetic_energy(J,omega):
-    """Rotational kinetic energy 0.5 * omega. J(omega) [J]."""
+    """Rotational kinetic energy 0.5 * omega . (J omega) [J]."""
     omega= np.asarray(omega, dtype=float)
     return 0.5 * omega @ (J @ omega)
 
 def angular_momentum_earth(q,J, omega):
-    """angular mmentum expressed in the earth frame [kg m^2/s].
+    """Angular momentum expressed in the earth frame [kg m^2/s].
     
     Constant during torque-free motion, so it is a useful check"""
     return quat_to_rotation_matrix(q) @ (J @ np.asarray(omega, dtype=float))

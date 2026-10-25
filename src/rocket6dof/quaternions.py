@@ -3,14 +3,28 @@
 Conventions, used throughout the simulator
 
 -Quaternions are scalar-first : q = [w,x,y,z], with length 1.
-- The attitude quaternion rotates vectros from the body frame into the 
+- The attitude quaternion rotates vectors from the body frame into the 
 earth frame: v_earth = R(q) @ v_body
 - Earth frame: x east, y north, z up
-- Body frame: x along the rocket's axid, out through the nose; y and z 
+- Body frame: x along the rocket's axis, out through the nose; y and z 
 perpendicular to it.
 - Angular velocity omega is expressed in the body frame [rad/s]
 """
 import numpy as np
+
+
+def cross3(a, b):
+    """Cross product of two 3-vectors, a x b.
+
+    Same result as ``numpy.cross(a, b)``, but written out for 3-vectors only.
+    numpy.cross handles arrays of any shape, and that generality costs about
+    about 10 microseconds per call. Profiling (cProfile) showed it was the
+    largest single cost in the right-hand side, which calls it twice per
+    evaluation. See the performance section of ``scripts/make_figures.py``.
+    """
+    return np.array([a[1] * b[2] - a[2] * b[1],
+                     a[2] * b[0] - a[0] * b[2],
+                     a[0] * b[1] - a[1] * b[0]])
 
 def quat_multiply(p,q):
     """Hamilton product p cross q, which combines two rotations.
@@ -30,7 +44,7 @@ def quat_multiply(p,q):
     pw, pv = p[0], p[1:]
     qw, qv = q[0], q[1:]
     w = pw * qw - np.dot(pv,qv)
-    v = pw * qv + qw * pv + np.cross(pv,qv)
+    v = pw * qv + qw * pv + cross3(pv,qv)
     return np.concatenate(([w],v))
 
 def quat_conjugate(q):
@@ -42,7 +56,7 @@ def quat_normalise(q):
     
     Raises
     ------
-    ValuesError
+    ValueError
         If the quaternion has (almost) zero length.
     """
     q = np.asarray(q, dtype=float)
@@ -69,7 +83,7 @@ def quat_from_axis_angle(axis,angle):
     return np.concatenate(([np.cos(half)], np.sin(half)*n))
 
 def quat_to_rotation_matrix(q):
-    """" 3x3 rotation matrix R with v_earth = R @ v_body."""
+    """3x3 rotation matrix R with v_earth = R @ v_body."""
     w, x, y, z = q
     return np.array([
         [1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
@@ -81,7 +95,7 @@ def rotate_vector(q,v):
     """Rotate vector v from the body frame into the earth frame, using q cross (0,v) cross q*.
     
     Gives the same result as 'quat_to_rotation_matrix(q) @ v', 
-    but by a different reout, which makes it a useful independent check.
+    but by a different route, which makes it a useful independent check.
     """
 
     v_quat = np.concatenate(([0.0], v))
