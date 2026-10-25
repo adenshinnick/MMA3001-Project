@@ -66,15 +66,6 @@
             <li>
                     <a class="function" href="#isa">isa</a>
             </li>
-            <li>
-                    <a class="variable" href="#MU_REF">MU_REF</a>
-            </li>
-            <li>
-                    <a class="variable" href="#SUTHERLAND_T">SUTHERLAND_T</a>
-            </li>
-            <li>
-                    <a class="function" href="#dynamic_viscosity">dynamic_viscosity</a>
-            </li>
     </ul>
 
 
@@ -169,28 +160,6 @@ The simulator uses the density for aerodynamic forces and the speed of sound for
 </span><span id="L-67"><a href="#L-67"><span class="linenos">67</span></a>    <span class="n">a</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">GAMMA</span><span class="o">*</span><span class="n">R_AIR</span><span class="o">*</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># Speed of Sound</span>
 </span><span id="L-68"><a href="#L-68"><span class="linenos">68</span></a>
 </span><span id="L-69"><a href="#L-69"><span class="linenos">69</span></a>    <span class="k">return</span> <span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">a</span>
-</span><span id="L-70"><a href="#L-70"><span class="linenos">70</span></a>
-</span><span id="L-71"><a href="#L-71"><span class="linenos">71</span></a><span class="c1"># Sutherland's law constants for air</span>
-</span><span id="L-72"><a href="#L-72"><span class="linenos">72</span></a><span class="n">MU_REF</span> <span class="o">=</span> <span class="mf">1.458e-6</span>      <span class="c1"># [kg/(m s K^0.5)]</span>
-</span><span id="L-73"><a href="#L-73"><span class="linenos">73</span></a><span class="n">SUTHERLAND_T</span> <span class="o">=</span> <span class="mf">110.4</span>   <span class="c1"># Sutherland temperature [K]</span>
-</span><span id="L-74"><a href="#L-74"><span class="linenos">74</span></a>
-</span><span id="L-75"><a href="#L-75"><span class="linenos">75</span></a>
-</span><span id="L-76"><a href="#L-76"><span class="linenos">76</span></a><span class="k">def</span><span class="w"> </span><span class="nf">dynamic_viscosity</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
-</span><span id="L-77"><a href="#L-77"><span class="linenos">77</span></a><span class="w">    </span><span class="sd">"""Dynamic viscosity of air from Sutherland's law [Pa s].</span>
-</span><span id="L-78"><a href="#L-78"><span class="linenos">78</span></a>
-</span><span id="L-79"><a href="#L-79"><span class="linenos">79</span></a><span class="sd">    mu = MU_REF * T^1.5 / (T + SUTHERLAND_T). Gives 1.789e-5 Pa s at 288.15 K.</span>
-</span><span id="L-80"><a href="#L-80"><span class="linenos">80</span></a><span class="sd">    Used for the Reynolds number in the skin-friction drag.</span>
-</span><span id="L-81"><a href="#L-81"><span class="linenos">81</span></a>
-</span><span id="L-82"><a href="#L-82"><span class="linenos">82</span></a><span class="sd">    Parameters</span>
-</span><span id="L-83"><a href="#L-83"><span class="linenos">83</span></a><span class="sd">    ----------</span>
-</span><span id="L-84"><a href="#L-84"><span class="linenos">84</span></a><span class="sd">    T : float</span>
-</span><span id="L-85"><a href="#L-85"><span class="linenos">85</span></a><span class="sd">        Air temperature [K], &gt; 0.</span>
-</span><span id="L-86"><a href="#L-86"><span class="linenos">86</span></a>
-</span><span id="L-87"><a href="#L-87"><span class="linenos">87</span></a><span class="sd">    Returns</span>
-</span><span id="L-88"><a href="#L-88"><span class="linenos">88</span></a><span class="sd">    -------</span>
-</span><span id="L-89"><a href="#L-89"><span class="linenos">89</span></a><span class="sd">    float</span>
-</span><span id="L-90"><a href="#L-90"><span class="linenos">90</span></a><span class="sd">    """</span>
-</span><span id="L-91"><a href="#L-91"><span class="linenos">91</span></a>    <span class="k">return</span> <span class="n">MU_REF</span> <span class="o">*</span> <span class="n">T</span><span class="o">**</span><span class="mf">1.5</span> <span class="o">/</span> <span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">SUTHERLAND_T</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -415,81 +384,6 @@ Speed of sound [m/s].</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>h</code> is outside the modelled range, or is NaN.</li>
-</ul>
-</div>
-
-
-                </section>
-                <section id="MU_REF">
-                    <div class="attr variable">
-            <span class="name">MU_REF</span>        =
-<span class="default_value">1.458e-06</span>
-
-        
-    </div>
-    <a class="headerlink" href="#MU_REF"></a>
-    
-    
-
-                </section>
-                <section id="SUTHERLAND_T">
-                    <div class="attr variable">
-            <span class="name">SUTHERLAND_T</span>        =
-<span class="default_value">110.4</span>
-
-        
-    </div>
-    <a class="headerlink" href="#SUTHERLAND_T"></a>
-    
-    
-
-                </section>
-                <section id="dynamic_viscosity">
-                            <input id="dynamic_viscosity-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
-<div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">dynamic_viscosity</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">T</span></span><span class="return-annotation">):</span></span>
-
-                <label class="view-source-button" for="dynamic_viscosity-view-source"><span>View Source</span></label>
-
-    </div>
-    <a class="headerlink" href="#dynamic_viscosity"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="dynamic_viscosity-77"><a href="#dynamic_viscosity-77"><span class="linenos">77</span></a><span class="k">def</span><span class="w"> </span><span class="nf">dynamic_viscosity</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
-</span><span id="dynamic_viscosity-78"><a href="#dynamic_viscosity-78"><span class="linenos">78</span></a><span class="w">    </span><span class="sd">"""Dynamic viscosity of air from Sutherland's law [Pa s].</span>
-</span><span id="dynamic_viscosity-79"><a href="#dynamic_viscosity-79"><span class="linenos">79</span></a>
-</span><span id="dynamic_viscosity-80"><a href="#dynamic_viscosity-80"><span class="linenos">80</span></a><span class="sd">    mu = MU_REF * T^1.5 / (T + SUTHERLAND_T). Gives 1.789e-5 Pa s at 288.15 K.</span>
-</span><span id="dynamic_viscosity-81"><a href="#dynamic_viscosity-81"><span class="linenos">81</span></a><span class="sd">    Used for the Reynolds number in the skin-friction drag.</span>
-</span><span id="dynamic_viscosity-82"><a href="#dynamic_viscosity-82"><span class="linenos">82</span></a>
-</span><span id="dynamic_viscosity-83"><a href="#dynamic_viscosity-83"><span class="linenos">83</span></a><span class="sd">    Parameters</span>
-</span><span id="dynamic_viscosity-84"><a href="#dynamic_viscosity-84"><span class="linenos">84</span></a><span class="sd">    ----------</span>
-</span><span id="dynamic_viscosity-85"><a href="#dynamic_viscosity-85"><span class="linenos">85</span></a><span class="sd">    T : float</span>
-</span><span id="dynamic_viscosity-86"><a href="#dynamic_viscosity-86"><span class="linenos">86</span></a><span class="sd">        Air temperature [K], &gt; 0.</span>
-</span><span id="dynamic_viscosity-87"><a href="#dynamic_viscosity-87"><span class="linenos">87</span></a>
-</span><span id="dynamic_viscosity-88"><a href="#dynamic_viscosity-88"><span class="linenos">88</span></a><span class="sd">    Returns</span>
-</span><span id="dynamic_viscosity-89"><a href="#dynamic_viscosity-89"><span class="linenos">89</span></a><span class="sd">    -------</span>
-</span><span id="dynamic_viscosity-90"><a href="#dynamic_viscosity-90"><span class="linenos">90</span></a><span class="sd">    float</span>
-</span><span id="dynamic_viscosity-91"><a href="#dynamic_viscosity-91"><span class="linenos">91</span></a><span class="sd">    """</span>
-</span><span id="dynamic_viscosity-92"><a href="#dynamic_viscosity-92"><span class="linenos">92</span></a>    <span class="k">return</span> <span class="n">MU_REF</span> <span class="o">*</span> <span class="n">T</span><span class="o">**</span><span class="mf">1.5</span> <span class="o">/</span> <span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">SUTHERLAND_T</span><span class="p">)</span>
-</span></pre></div>
-
-
-            <div class="docstring"><p>Dynamic viscosity of air from Sutherland's law [Pa s].</p>
-
-<p>mu = MU_REF * T^1.5 / (T + SUTHERLAND_T). Gives 1.789e-5 Pa s at 288.15 K.
-Used for the Reynolds number in the skin-friction drag.</p>
-
-<h6 id="parameters">Parameters</h6>
-
-<ul>
-<li><strong>T</strong> (float):
-Air temperature [K], &gt; 0.</li>
-</ul>
-
-<h6 id="returns">Returns</h6>
-
-<ul>
-<li><strong>float</strong></li>
 </ul>
 </div>
 

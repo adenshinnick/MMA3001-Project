@@ -2,61 +2,41 @@
 
 A six-degree-of-freedom (6-DOF) flight simulator for a single-stage model rocket, written in Python for the MMA3001 Numerical Methods and Machine Learning individual project.
 
-Given a rocket description (geometry, mass properties, motor thrust curve, parachute) and launch conditions (rail, wind, site altitude), it predicts the flight from ignition to landing: apogee, speeds, static stability margin, and landing point. The rocket is a rigid body with 13 states (position, velocity, attitude quaternion, body rates), integrated with a hand-written fourth-order Runge-Kutta method.
+It takes a rocket description (shape, mass, motor thrust curve, drag, parachute) and launch conditions (rail angle, wind), and predicts the flight from ignition to landing: apogee, speed, stability margin and landing point. The rocket is a rigid body with 13 states (position, velocity, attitude quaternion, body rates), integrated with a hand-written fourth-order Runge-Kutta (RK4) method.
 
-**Headline result.** For the L1 ROCKET on an AeroTech HP-H182R, the simulator predicts an apogee of 1015.7 m against OpenRocket's 1013.6 m (+0.21 %, inside the 5 % acceptance criterion). With OpenRocket's own drag coefficient the difference falls to -0.01 %, which shows that the remaining gap comes from the drag model, not from the numerics. Full numbers: [`reports/results.md`](reports/results.md).
-
-## Project status
-
-| Component | Status |
-| --- | --- |
-| RK4 and explicit Euler integrators | Done, with tests |
-| Atmosphere (ISA) and air viscosity | Done, with tests |
-| Thrust curve and motor mass | Done, with tests |
-| Quaternion attitude, Euler-angle baseline | Done, with tests |
-| Rigid-body rotation (Euler's equation) | Done, with tests |
-| Mass, CG and inertia (parts list; changing during the burn) | Done, with tests |
-| Aerodynamics: Barrowman normal force and CP, drag build-up, damping | Done, with tests |
-| Wind, launch rail, parachute descent, event location | Done, with tests |
-| Validation against OpenRocket | Done: apogee +0.21 % |
-| Convergence, integrator, drag-model and attitude comparisons | Done |
-| Sensitivity and Monte Carlo dispersion | Done |
-| Profiling and performance optimisation | Done |
+**Result.** For my L1 ROCKET on an AeroTech HP-H182R motor, the simulator predicts an apogee of 1013.5 m against OpenRocket's 1013.6 m (−0.01 %; the acceptance criterion was 5 %). The drag coefficient is taken from OpenRocket, so this checks the equations of motion, thrust, mass, atmosphere and numerics, not the drag prediction. Full numbers: [`reports/results.md`](reports/results.md).
 
 ## Repository structure
 
 ```text
 MMA3001-Project/
 ├── src/rocket6dof/          The simulator (a Python package)
-│   ├── integrators.py       RK4 and explicit Euler steps
-│   ├── atmosphere.py        International Standard Atmosphere, viscosity
-│   ├── motor.py             Thrust curve (.eng files), motor mass
-│   ├── quaternions.py       Attitude quaternions, 3-vector cross product
-│   ├── euler_angles.py      Euler angles (baseline for comparison)
+│   ├── integrators.py       RK4 time step
+│   ├── atmosphere.py        International Standard Atmosphere
+│   ├── motor.py             Thrust curve (.eng files) and motor mass
+│   ├── quaternions.py       Attitude quaternions
 │   ├── rigid_body.py        Euler's rotation equation
-│   ├── mass_properties.py   Mass, CG and inertia from simple parts
-│   ├── aerodynamics.py      Normal force, CP, drag, aerodynamic moments
-│   ├── wind.py              Wind profiles
-│   ├── rocket.py            Rocket: mass, CG and inertia during the burn
-│   ├── config.py            Reads a rocket from a TOML file, checks every input
-│   ├── dynamics.py          13-state equations of motion
-│   ├── simulation.py        Flight from pad to landing, events
-│   ├── benchmark.py         Reads OpenRocket CSV exports
-│   └── analysis.py          Convergence, integrators, sensitivity, Monte Carlo
-├── tests/                   pytest tests (one file per module, plus whole-flight tests)
+│   ├── aerodynamics.py      Drag, Barrowman normal force and centre of pressure
+│   ├── wind.py              Constant wind
+│   ├── rocket.py            Rocket: mass and CG during the burn
+│   ├── config.py            Reads the rocket file and checks every input
+│   ├── dynamics.py          The 13-state equations of motion
+│   ├── simulation.py        The flight from pad to landing, events
+│   ├── benchmark.py         Reads the OpenRocket CSV export
+│   └── analysis.py          Helpers for the convergence and sensitivity studies
+├── tests/                   pytest tests
 ├── scripts/
 │   ├── run_flight.py        Simulate one flight from the command line
-│   ├── make_figures.py      Regenerate every figure and results table
-│   ├── estimate_inertia.py  Derive the inertia in the rocket file from its parts
-│   └── first_flight.py      Early demo flight with no drag (kept for history)
+│   ├── make_figures.py      Regenerate every figure and the results table
+│   ├── fit_drag.py          Fit the drag law to the OpenRocket data
+│   └── first_flight.py      Early demo flight with no drag
 ├── data/
 │   ├── rocket/              l1_rocket.toml (simulator input) and L1 ROCKET.ork (OpenRocket design)
 │   ├── motors/              AeroTech_H182R.eng thrust curve
 │   └── benchmark/           L1_benchmark.csv (OpenRocket simulation export)
 ├── reports/
-│   ├── figures/             All figures in the report (generated)
-│   ├── results.md           All numbers in the report (generated)
-│   ├── results.json         The same, machine-readable (generated)
+│   ├── figures/             Figures used in the report (generated)
+│   ├── results.md           Numbers used in the report (generated)
 │   └── test_report.html     pytest report (generated)
 ├── docs/                    HTML documentation of the code (generated by pdoc)
 ├── pyproject.toml           Makes the package installable
@@ -69,99 +49,57 @@ MMA3001-Project/
 
 Tested with Python 3.13 on Windows.
 
-1. Clone the repository and move into it:
+```
+git clone https://github.com/adenshinnick/MMA3001-Project.git
+cd MMA3001-Project
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -e .
+```
 
-   ```
-   git clone https://github.com/adenshinnick/MMA3001-Project.git
-   cd MMA3001-Project
-   ```
-
-2. Create and activate a virtual environment:
-
-   ```
-   python -m venv .venv
-   ```
-
-   - Windows (PowerShell): `.venv\Scripts\Activate.ps1`
-   - Windows (Command Prompt): `.venv\Scripts\activate.bat`
-   - macOS or Linux: `source .venv/bin/activate`
-
-   If PowerShell says running scripts is disabled, run this once and try again:
-
-   ```
-   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-   ```
-
-3. Install the exact package versions, then the simulator itself in editable mode:
-
-   ```
-   pip install -r requirements.txt
-   pip install -e .
-   ```
+On macOS or Linux, activate with `source .venv/bin/activate`. If PowerShell says running scripts is disabled, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and try again.
 
 ## Usage
 
-All commands are run from the project folder with the environment active.
+Run these from the project folder with the environment active.
 
-| Task | Command | Output |
-| --- | --- | --- |
-| Run the tests | `pytest` | 137 tests, all should pass (under a minute) |
-| Simulate one flight | `python scripts/run_flight.py` | Summary in the terminal, `reports/figures/flight.png` |
-| Flight with wind and a tilted rail | `python scripts/run_flight.py --elevation 85 --wind 4 --wind-from 270` | As above |
-| Regenerate every figure and table | `python scripts/make_figures.py` (3 to 6 min; `--quick` for about 1 min) | `reports/figures/`, `reports/results.md`, `reports/results.json` |
-| Regenerate the test report | `pytest --html=reports/test_report.html --self-contained-html` | `reports/test_report.html` |
-| Regenerate the code documentation | `pdoc --docformat numpy rocket6dof -o docs` | `docs/index.html` |
-| Rebuild the inertia estimate | `python scripts/estimate_inertia.py` | Parts table and inertia, printed |
-
-From Python:
-
-```python
-from rocket6dof.config import load_rocket
-from rocket6dof.simulation import launch_attitude, simulate, summarise
-from rocket6dof.wind import Wind
-
-rocket = load_rocket("data/rocket/l1_rocket.toml")
-result = simulate(rocket, launch_attitude(87.0), rail_length=1.0, h=0.02, h_descent=0.1,
-                  wind=Wind(4.0, direction_deg=270.0, exponent=1/7))
-print(summarise(result))
-```
+| Task | Command |
+| --- | --- |
+| Run the tests | `pytest` |
+| Simulate one flight | `python scripts/run_flight.py` |
+| A flight with wind and a tilted rail | `python scripts/run_flight.py --elevation 85 --wind 4 --wind-from 270` |
+| Regenerate every figure and `reports/results.md` | `python scripts/make_figures.py` (about 30 s) |
+| Refit the drag law | `python scripts/fit_drag.py` |
+| Regenerate the test report | `pytest --html=reports/test_report.html --self-contained-html` |
+| Regenerate the HTML documentation | `pdoc --docformat numpy rocket6dof -o docs` |
 
 ## Inputs
 
-| Input | Where | Units | Valid domain | If invalid or missing |
-| --- | --- | --- | --- | --- |
-| Body diameter, length, roughness | `[body]` in the TOML file | m | > 0 | `ValueError` naming the field |
-| Nose shape and length | `[nose]` | -, m | ellipsoid, conical or ogive; shorter than the body | `ValueError` naming the field |
-| Fin count, chords, span, sweep, thickness, station | `[fins]` | -, m | count a whole number >= 3; sizes > 0; fins inside the body | `ValueError` naming the field |
-| Dry mass, dry CG, inertia | `[mass]` | kg, m, kg m^2 | mass > 0; CG inside the body; inertia positive definite | `ValueError` |
-| Motor file and station | `[motor]` | -, m | RASP `.eng` file; times increasing, thrust >= 0, ends at 0 | `FileNotFoundError` or `ValueError` |
-| Parachute diameter and C_D | `[parachute]` (optional) | m, - | > 0 | `ValueError` |
-| Rail length, elevation, azimuth | `simulate`, `launch_attitude` | m, deg | length > 0; elevation 0 to 90 | `ValueError` |
-| Wind speed, direction, profile exponent | `Wind` | m/s, deg, - | speed >= 0; exponent >= 0 | `ValueError` |
-| Site altitude | `simulate` | m | flight must stay within -610 m to 20 km (ISA range) | `ValueError` during the run |
-| Step sizes, method | `simulate` | s | > 0; `rk4` or `euler` | `ValueError` |
-| Flight Mach number | (result of the run) | - | 0 to 0.8 (subsonic aerodynamic model) | The run stops with a `ValueError`; nothing is extrapolated |
+The rocket is described in `data/rocket/l1_rocket.toml`. Every value is checked when the file is read; a missing or invalid value stops with an error naming the field.
+
+| Input | Units | Valid values |
+| --- | --- | --- |
+| Body diameter and length; nose length | m | > 0; nose shorter than body |
+| Fins: count, root chord, tip chord, span, sweep, position | –, m | 3 or more fins; sizes > 0; fins inside the body |
+| Dry mass, dry CG position, moments of inertia | kg, m, kg m² | > 0; CG inside the body |
+| Motor thrust curve (`.eng` file) and position | s, N, m | times increasing, thrust ≥ 0, ends at 0 |
+| Drag law C_D = cd0 + k M² | – | cd0 > 0, k ≥ 0; Mach 0 to 0.8 |
+| Parachute diameter and drag coefficient | m, – | > 0 |
+| Rail length and elevation; wind speed and direction | m, deg, m/s | length > 0; elevation 0–90; speed ≥ 0 |
 
 ## Outputs
 
-`simulate` returns the time history (`t`, and the 13-state `x` at every step), the events (rail exit, burnout, apogee, parachute deployment, landing), a status (`landed`, `apogee` or `t_max reached`) and the cost (`n_steps`, `n_rhs`). `summarise` turns that into apogee and its time, maximum speed and Mach number, rail-exit speed, landing time, speed and distance. `air_speed_and_mach` gives air speed and Mach number over time, and the stability margin follows from `aerodynamics.normal_force_slope_and_cp` and `Rocket.cg`.
+`simulate` returns the time history of the 13 states, the events (rail exit, burnout, apogee, landing) and the run status. `summarise` gives apogee and its time, maximum speed and Mach number, rail-exit speed, and landing time, speed and position.
 
-## Validation in brief
+## Data sources
 
-- **Verification against exact answers:** RK4 order (4.06), vacuum parabola, rocket equation at 90/80/45 deg, torque-free coning and conservation, exact vacuum coast events, pitch-oscillation frequency (within 1 %), parachute terminal speed (within 0.1 %).
-- **Component checks against OpenRocket:** CP within 1.2 mm from rail exit to 12 s (Barrowman with compressibility), stability margin 2.31 calibres at rail exit (same), mass within 0.0001 % and CG within 0.5 mm throughout the burn, drag coefficient within 1.9 %.
-- **Whole flight against OpenRocket:** apogee +0.21 %, time to apogee +0.21 %, maximum speed +0.07 %, landing time +0.19 %.
-- **What this cannot show:** OpenRocket is another model built on the same Barrowman method, not a measurement. Agreement shows the code is consistent with an established tool, not that either matches a real flight.
-
-## Data sources and licences
-
-- `data/motors/AeroTech_H182R.eng`: AeroTech HP-H182R thrust curve from [ThrustCurve.org](https://www.thrustcurve.org/motors/AeroTech/HP-H182R/), contributed by Mike Caplinger and marked public domain in the file.
-- `data/rocket/L1 ROCKET.ork` and `data/benchmark/L1_benchmark.csv`: my own rocket design and OpenRocket 24.12 simulation export.
-- Methods: Barrowman (1967), *The Practical Calculation of the Aerodynamic Characteristics of Slender Finned Vehicles*; Niskanen (2009), *Development of an Open Source Model Rocket Simulation Software* (OpenRocket technical documentation).
+- `data/motors/AeroTech_H182R.eng`: thrust curve from [ThrustCurve.org](https://www.thrustcurve.org/motors/AeroTech/HP-H182R/), public domain.
+- `data/rocket/L1 ROCKET.ork` and `data/benchmark/L1_benchmark.csv`: my own rocket design and OpenRocket 24.12 simulation.
 
 ## AI use
 
-This project was developed with assistance from Claude (Anthropic). How AI was used, and how its output was checked, is described in the AI reflection section of the project report.
+This project was developed with help from Claude (Anthropic). How AI was used, and how its output was checked, is described in the AI reflection section of the report.
 
 ## Licence
 

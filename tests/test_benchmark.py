@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from rocket6dof.atmosphere import isa
-from rocket6dof.benchmark import (compare, infer_drag_coefficient, load_openrocket_csv,
-                                  openrocket_gravity)
+from rocket6dof.benchmark import (G_OPENROCKET, fit_mach_drag, infer_drag_coefficient,
+                                  load_openrocket_csv, rms_difference)
 
 CSV = """# Test run
 # Time (s),Altitude (ft),Total velocity (m/s),Mass (g)
@@ -32,13 +32,6 @@ def test_unknown_unit_is_refused(tmp_path):
         load_openrocket_csv(path)
 
 
-def test_ragged_row_is_refused(tmp_path):
-    path = tmp_path / "run.csv"
-    path.write_text(CSV + "3,300\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="values"):
-        load_openrocket_csv(path)
-
-
 def test_missing_header_is_refused(tmp_path):
     path = tmp_path / "run.csv"
     path.write_text("0,0,0,1000\n", encoding="utf-8")
@@ -46,25 +39,25 @@ def test_missing_header_is_refused(tmp_path):
         load_openrocket_csv(path)
 
 
-def test_openrocket_gravity_at_equator_and_pole():
-    assert openrocket_gravity(0.0, 0.0) == pytest.approx(9.7803267714)
-    assert openrocket_gravity(90.0, 0.0) == pytest.approx(9.8321849, rel=1e-6)  # WGS84 polar value
-
-
 def test_drag_inference_recovers_a_known_cd():
     """Build fake coast data with C_D = 0.5 exactly and check it comes back."""
-    A, lat, m = 0.0028, 28.61, 0.77
+    A, m = 0.0028, 0.77
     h = np.linspace(100.0, 900.0, 50)
     V = np.linspace(200.0, 20.0, 50)
     rho = np.array([isa(z)[2] for z in h])
-    accel = openrocket_gravity(lat, h) + 0.5 * rho * V**2 * 0.5 * A / m
+    accel = G_OPENROCKET + 0.5 * rho * V**2 * 0.5 * A / m
     data = {"t": np.linspace(2.0, 10.0, 50), "altitude": h, "speed": V,
             "acceleration": accel, "mass": np.full(50, m)}
-    mach, cd = infer_drag_coefficient(data, A, lat, 1.0, 11.0)
+    _, cd = infer_drag_coefficient(data, A, 1.0, 11.0)
     np.testing.assert_allclose(cd, 0.5, rtol=1e-12)
-    assert np.all(np.diff(mach) > 0.0)
 
 
-def test_compare_gives_rms_difference():
+def test_fit_recovers_known_drag_law():
+    mach = np.linspace(0.05, 0.6, 20)
+    cd0, k = fit_mach_drag(mach, 0.47 + 0.16 * mach**2)
+    assert cd0 == pytest.approx(0.47) and k == pytest.approx(0.16)
+
+
+def test_rms_difference():
     t = np.array([0.0, 1.0, 2.0])
-    assert compare(t, np.array([0.0, 1.0, 2.0]), t, np.array([0.0, 2.0, 2.0])) == pytest.approx(np.sqrt(1 / 3))
+    assert rms_difference(t, np.array([0.0, 1.0, 2.0]), t, np.array([0.0, 2.0, 2.0])) == pytest.approx(np.sqrt(1 / 3))

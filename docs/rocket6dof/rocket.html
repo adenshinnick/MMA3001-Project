@@ -87,9 +87,6 @@
                         <li>
                                 <a class="function" href="#Rocket.cg">cg</a>
                         </li>
-                        <li>
-                                <a class="function" href="#Rocket.inertia_at">inertia_at</a>
-                        </li>
                 </ul>
 
             </li>
@@ -109,174 +106,116 @@
                     <h1 class="modulename">
 <a href="./../rocket6dof.html">rocket6dof</a><wbr>.rocket    </h1>
 
-                        <div class="docstring"><p>Rocket description: the data the equations of motion need.</p>
+                        <div class="docstring"><p>Rocket description: mass properties, motor, geometry and parachute.</p>
 
-<p>A <code><a href="#Rocket">Rocket</a></code> holds the dry (motor-less) mass properties, the motor, and
-optionally the external geometry (for aerodynamics) and a parachute.</p>
-
-<h6 id="mass-properties-during-the-burn">Mass properties during the burn</h6>
-
-<p>If the dry CG station and the motor's position are given, the CG and the
-inertia tensor change as propellant burns. The motor is treated as a
-uniform solid cylinder whose mass falls with the impulse delivered:</p>
-
-<pre><code>m(t)    = m_dry + m_motor(t)
-x_cg(t) = (m_dry x_dry + m_motor(t) x_motor) / m(t)
-J(t)    = J_dry + J_motor(t) + parallel-axis terms to x_cg(t)
-</code></pre>
-
-<p>The rate of change of inertia (the J-dot term) and jet damping are
-neglected in Euler's equation; see <code>rigid_body.py</code>.</p>
+<p>The CG moves forward as the propellant burns; the inertia tensor is kept
+constant (the inertia-rate and jet-damping terms are neglected).</p>
 </div>
 
                         <input id="mod-rocket-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 
                         <label class="view-source-button" for="mod-rocket-view-source"><span>View Source</span></label>
 
-                        <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos">  1</span></a><span class="sd">"""Rocket description: the data the equations of motion need.</span>
+                        <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos">  1</span></a><span class="sd">"""Rocket description: mass properties, motor, geometry and parachute.</span>
 </span><span id="L-2"><a href="#L-2"><span class="linenos">  2</span></a>
-</span><span id="L-3"><a href="#L-3"><span class="linenos">  3</span></a><span class="sd">A ``Rocket`` holds the dry (motor-less) mass properties, the motor, and</span>
-</span><span id="L-4"><a href="#L-4"><span class="linenos">  4</span></a><span class="sd">optionally the external geometry (for aerodynamics) and a parachute.</span>
-</span><span id="L-5"><a href="#L-5"><span class="linenos">  5</span></a>
-</span><span id="L-6"><a href="#L-6"><span class="linenos">  6</span></a><span class="sd">Mass properties during the burn</span>
-</span><span id="L-7"><a href="#L-7"><span class="linenos">  7</span></a><span class="sd">-------------------------------</span>
-</span><span id="L-8"><a href="#L-8"><span class="linenos">  8</span></a><span class="sd">If the dry CG station and the motor's position are given, the CG and the</span>
-</span><span id="L-9"><a href="#L-9"><span class="linenos">  9</span></a><span class="sd">inertia tensor change as propellant burns. The motor is treated as a</span>
-</span><span id="L-10"><a href="#L-10"><span class="linenos"> 10</span></a><span class="sd">uniform solid cylinder whose mass falls with the impulse delivered:</span>
+</span><span id="L-3"><a href="#L-3"><span class="linenos">  3</span></a><span class="sd">The CG moves forward as the propellant burns; the inertia tensor is kept</span>
+</span><span id="L-4"><a href="#L-4"><span class="linenos">  4</span></a><span class="sd">constant (the inertia-rate and jet-damping terms are neglected).</span>
+</span><span id="L-5"><a href="#L-5"><span class="linenos">  5</span></a><span class="sd">"""</span>
+</span><span id="L-6"><a href="#L-6"><span class="linenos">  6</span></a>
+</span><span id="L-7"><a href="#L-7"><span class="linenos">  7</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+</span><span id="L-8"><a href="#L-8"><span class="linenos">  8</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">pi</span>
+</span><span id="L-9"><a href="#L-9"><span class="linenos">  9</span></a>
+</span><span id="L-10"><a href="#L-10"><span class="linenos"> 10</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">rocket6dof.rigid_body</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_inertia</span>
 </span><span id="L-11"><a href="#L-11"><span class="linenos"> 11</span></a>
-</span><span id="L-12"><a href="#L-12"><span class="linenos"> 12</span></a><span class="sd">    m(t)    = m_dry + m_motor(t)</span>
-</span><span id="L-13"><a href="#L-13"><span class="linenos"> 13</span></a><span class="sd">    x_cg(t) = (m_dry x_dry + m_motor(t) x_motor) / m(t)</span>
-</span><span id="L-14"><a href="#L-14"><span class="linenos"> 14</span></a><span class="sd">    J(t)    = J_dry + J_motor(t) + parallel-axis terms to x_cg(t)</span>
-</span><span id="L-15"><a href="#L-15"><span class="linenos"> 15</span></a>
-</span><span id="L-16"><a href="#L-16"><span class="linenos"> 16</span></a><span class="sd">The rate of change of inertia (the J-dot term) and jet damping are</span>
-</span><span id="L-17"><a href="#L-17"><span class="linenos"> 17</span></a><span class="sd">neglected in Euler's equation; see ``rigid_body.py``.</span>
-</span><span id="L-18"><a href="#L-18"><span class="linenos"> 18</span></a><span class="sd">"""</span>
-</span><span id="L-19"><a href="#L-19"><span class="linenos"> 19</span></a>
-</span><span id="L-20"><a href="#L-20"><span class="linenos"> 20</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-</span><span id="L-21"><a href="#L-21"><span class="linenos"> 21</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">pi</span>
-</span><span id="L-22"><a href="#L-22"><span class="linenos"> 22</span></a>
-</span><span id="L-23"><a href="#L-23"><span class="linenos"> 23</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="L-12"><a href="#L-12"><span class="linenos"> 12</span></a>
+</span><span id="L-13"><a href="#L-13"><span class="linenos"> 13</span></a><span class="nd">@dataclass</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos"> 14</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Parachute</span><span class="p">:</span>
+</span><span id="L-15"><a href="#L-15"><span class="linenos"> 15</span></a><span class="w">    </span><span class="sd">"""A recovery parachute, deployed at apogee.</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos"> 16</span></a>
+</span><span id="L-17"><a href="#L-17"><span class="linenos"> 17</span></a><span class="sd">    Attributes</span>
+</span><span id="L-18"><a href="#L-18"><span class="linenos"> 18</span></a><span class="sd">    ----------</span>
+</span><span id="L-19"><a href="#L-19"><span class="linenos"> 19</span></a><span class="sd">    diameter : float</span>
+</span><span id="L-20"><a href="#L-20"><span class="linenos"> 20</span></a><span class="sd">        Canopy diameter [m].</span>
+</span><span id="L-21"><a href="#L-21"><span class="linenos"> 21</span></a><span class="sd">    drag_coefficient : float</span>
+</span><span id="L-22"><a href="#L-22"><span class="linenos"> 22</span></a><span class="sd">        Drag coefficient based on canopy area [-].</span>
+</span><span id="L-23"><a href="#L-23"><span class="linenos"> 23</span></a><span class="sd">    """</span>
 </span><span id="L-24"><a href="#L-24"><span class="linenos"> 24</span></a>
-</span><span id="L-25"><a href="#L-25"><span class="linenos"> 25</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">rocket6dof.rigid_body</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_inertia</span>
-</span><span id="L-26"><a href="#L-26"><span class="linenos"> 26</span></a>
+</span><span id="L-25"><a href="#L-25"><span class="linenos"> 25</span></a>    <span class="n">diameter</span><span class="p">:</span> <span class="nb">float</span>
+</span><span id="L-26"><a href="#L-26"><span class="linenos"> 26</span></a>    <span class="n">drag_coefficient</span><span class="p">:</span> <span class="nb">float</span>
 </span><span id="L-27"><a href="#L-27"><span class="linenos"> 27</span></a>
-</span><span id="L-28"><a href="#L-28"><span class="linenos"> 28</span></a><span class="nd">@dataclass</span>
-</span><span id="L-29"><a href="#L-29"><span class="linenos"> 29</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Parachute</span><span class="p">:</span>
-</span><span id="L-30"><a href="#L-30"><span class="linenos"> 30</span></a><span class="w">    </span><span class="sd">"""A recovery parachute, deployed at apogee.</span>
-</span><span id="L-31"><a href="#L-31"><span class="linenos"> 31</span></a>
-</span><span id="L-32"><a href="#L-32"><span class="linenos"> 32</span></a><span class="sd">    Attributes</span>
-</span><span id="L-33"><a href="#L-33"><span class="linenos"> 33</span></a><span class="sd">    ----------</span>
-</span><span id="L-34"><a href="#L-34"><span class="linenos"> 34</span></a><span class="sd">    diameter : float</span>
-</span><span id="L-35"><a href="#L-35"><span class="linenos"> 35</span></a><span class="sd">        Canopy diameter [m].</span>
-</span><span id="L-36"><a href="#L-36"><span class="linenos"> 36</span></a><span class="sd">    drag_coefficient : float</span>
-</span><span id="L-37"><a href="#L-37"><span class="linenos"> 37</span></a><span class="sd">        Drag coefficient based on canopy area [-].</span>
-</span><span id="L-38"><a href="#L-38"><span class="linenos"> 38</span></a><span class="sd">    """</span>
+</span><span id="L-28"><a href="#L-28"><span class="linenos"> 28</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="L-29"><a href="#L-29"><span class="linenos"> 29</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span id="L-30"><a href="#L-30"><span class="linenos"> 30</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parachute 'diameter' must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="L-31"><a href="#L-31"><span class="linenos"> 31</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">drag_coefficient</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span id="L-32"><a href="#L-32"><span class="linenos"> 32</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parachute 'drag_coefficient' must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">drag_coefficient</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="L-33"><a href="#L-33"><span class="linenos"> 33</span></a>
+</span><span id="L-34"><a href="#L-34"><span class="linenos"> 34</span></a>    <span class="nd">@property</span>
+</span><span id="L-35"><a href="#L-35"><span class="linenos"> 35</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="L-36"><a href="#L-36"><span class="linenos"> 36</span></a><span class="w">        </span><span class="sd">"""Canopy reference area pi d^2 / 4 [m^2]."""</span>
+</span><span id="L-37"><a href="#L-37"><span class="linenos"> 37</span></a>        <span class="k">return</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="o">**</span><span class="mi">2</span>
+</span><span id="L-38"><a href="#L-38"><span class="linenos"> 38</span></a>
 </span><span id="L-39"><a href="#L-39"><span class="linenos"> 39</span></a>
-</span><span id="L-40"><a href="#L-40"><span class="linenos"> 40</span></a>    <span class="n">diameter</span><span class="p">:</span> <span class="nb">float</span>
-</span><span id="L-41"><a href="#L-41"><span class="linenos"> 41</span></a>    <span class="n">drag_coefficient</span><span class="p">:</span> <span class="nb">float</span>
+</span><span id="L-40"><a href="#L-40"><span class="linenos"> 40</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Rocket</span><span class="p">:</span>
+</span><span id="L-41"><a href="#L-41"><span class="linenos"> 41</span></a><span class="w">    </span><span class="sd">"""A single stage rocket.</span>
 </span><span id="L-42"><a href="#L-42"><span class="linenos"> 42</span></a>
-</span><span id="L-43"><a href="#L-43"><span class="linenos"> 43</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="L-44"><a href="#L-44"><span class="linenos"> 44</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span id="L-45"><a href="#L-45"><span class="linenos"> 45</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parachute 'diameter' must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="L-46"><a href="#L-46"><span class="linenos"> 46</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">drag_coefficient</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span id="L-47"><a href="#L-47"><span class="linenos"> 47</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parachute 'drag_coefficient' must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">drag_coefficient</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="L-48"><a href="#L-48"><span class="linenos"> 48</span></a>
-</span><span id="L-49"><a href="#L-49"><span class="linenos"> 49</span></a>    <span class="nd">@property</span>
-</span><span id="L-50"><a href="#L-50"><span class="linenos"> 50</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="L-51"><a href="#L-51"><span class="linenos"> 51</span></a><span class="w">        </span><span class="sd">"""Canopy reference area pi d^2 / 4 [m^2]."""</span>
-</span><span id="L-52"><a href="#L-52"><span class="linenos"> 52</span></a>        <span class="k">return</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="o">**</span><span class="mi">2</span>
-</span><span id="L-53"><a href="#L-53"><span class="linenos"> 53</span></a>
-</span><span id="L-54"><a href="#L-54"><span class="linenos"> 54</span></a>
-</span><span id="L-55"><a href="#L-55"><span class="linenos"> 55</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Rocket</span><span class="p">:</span>
-</span><span id="L-56"><a href="#L-56"><span class="linenos"> 56</span></a><span class="w">    </span><span class="sd">"""A single stage rocket.</span>
-</span><span id="L-57"><a href="#L-57"><span class="linenos"> 57</span></a>
-</span><span id="L-58"><a href="#L-58"><span class="linenos"> 58</span></a><span class="sd">    Parameters</span>
-</span><span id="L-59"><a href="#L-59"><span class="linenos"> 59</span></a><span class="sd">    ----------</span>
-</span><span id="L-60"><a href="#L-60"><span class="linenos"> 60</span></a><span class="sd">    dry_mass : float</span>
-</span><span id="L-61"><a href="#L-61"><span class="linenos"> 61</span></a><span class="sd">        Mass of the rocket without its motor [kg].</span>
-</span><span id="L-62"><a href="#L-62"><span class="linenos"> 62</span></a><span class="sd">    inertia : array_like</span>
-</span><span id="L-63"><a href="#L-63"><span class="linenos"> 63</span></a><span class="sd">        Inertia tensor of the dry rocket about its own CG, body axes [kg m^2].</span>
-</span><span id="L-64"><a href="#L-64"><span class="linenos"> 64</span></a><span class="sd">    motor : Motor</span>
-</span><span id="L-65"><a href="#L-65"><span class="linenos"> 65</span></a><span class="sd">        The rocket's motor.</span>
-</span><span id="L-66"><a href="#L-66"><span class="linenos"> 66</span></a><span class="sd">    geometry : Geometry, optional</span>
-</span><span id="L-67"><a href="#L-67"><span class="linenos"> 67</span></a><span class="sd">        External shape. If omitted, no aerodynamic forces act.</span>
-</span><span id="L-68"><a href="#L-68"><span class="linenos"> 68</span></a><span class="sd">    drag_model : callable, optional</span>
-</span><span id="L-69"><a href="#L-69"><span class="linenos"> 69</span></a><span class="sd">        ``drag_model(mach, reynolds)`` returning C_D. Needed with ``geometry``.</span>
-</span><span id="L-70"><a href="#L-70"><span class="linenos"> 70</span></a><span class="sd">    dry_cg : float, optional</span>
-</span><span id="L-71"><a href="#L-71"><span class="linenos"> 71</span></a><span class="sd">        Station of the dry CG, aft of the nose tip [m].</span>
-</span><span id="L-72"><a href="#L-72"><span class="linenos"> 72</span></a><span class="sd">    motor_station : float, optional</span>
-</span><span id="L-73"><a href="#L-73"><span class="linenos"> 73</span></a><span class="sd">        Station of the motor's front end [m]. With ``dry_cg``, makes the CG</span>
-</span><span id="L-74"><a href="#L-74"><span class="linenos"> 74</span></a><span class="sd">        and inertia vary during the burn. Needs the motor's length.</span>
-</span><span id="L-75"><a href="#L-75"><span class="linenos"> 75</span></a><span class="sd">    parachute : Parachute, optional</span>
-</span><span id="L-76"><a href="#L-76"><span class="linenos"> 76</span></a><span class="sd">        Deployed at apogee if given.</span>
-</span><span id="L-77"><a href="#L-77"><span class="linenos"> 77</span></a><span class="sd">    name : str</span>
-</span><span id="L-78"><a href="#L-78"><span class="linenos"> 78</span></a><span class="sd">        Label for printouts.</span>
-</span><span id="L-79"><a href="#L-79"><span class="linenos"> 79</span></a>
-</span><span id="L-80"><a href="#L-80"><span class="linenos"> 80</span></a><span class="sd">    Raises</span>
-</span><span id="L-81"><a href="#L-81"><span class="linenos"> 81</span></a><span class="sd">    ------</span>
-</span><span id="L-82"><a href="#L-82"><span class="linenos"> 82</span></a><span class="sd">    ValueError</span>
-</span><span id="L-83"><a href="#L-83"><span class="linenos"> 83</span></a><span class="sd">        If the dry mass is not positive, the inertia tensor is invalid, or</span>
-</span><span id="L-84"><a href="#L-84"><span class="linenos"> 84</span></a><span class="sd">        the optional data are inconsistent.</span>
-</span><span id="L-85"><a href="#L-85"><span class="linenos"> 85</span></a><span class="sd">    """</span>
-</span><span id="L-86"><a href="#L-86"><span class="linenos"> 86</span></a>
-</span><span id="L-87"><a href="#L-87"><span class="linenos"> 87</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dry_mass</span><span class="p">,</span> <span class="n">inertia</span><span class="p">,</span> <span class="n">motor</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drag_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span id="L-88"><a href="#L-88"><span class="linenos"> 88</span></a>                 <span class="n">dry_cg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">motor_station</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parachute</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"rocket"</span><span class="p">):</span>
-</span><span id="L-89"><a href="#L-89"><span class="linenos"> 89</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">dry_mass</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span id="L-90"><a href="#L-90"><span class="linenos"> 90</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Dry mass must be positive, got </span><span class="si">{</span><span class="n">dry_mass</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="L-91"><a href="#L-91"><span class="linenos"> 91</span></a>        <span class="k">if</span> <span class="n">geometry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">drag_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-92"><a href="#L-92"><span class="linenos"> 92</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a rocket with geometry also needs a drag_model"</span><span class="p">)</span>
-</span><span id="L-93"><a href="#L-93"><span class="linenos"> 93</span></a>        <span class="k">if</span> <span class="n">geometry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-94"><a href="#L-94"><span class="linenos"> 94</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a rocket with geometry also needs dry_cg (for the moment arm)"</span><span class="p">)</span>
-</span><span id="L-95"><a href="#L-95"><span class="linenos"> 95</span></a>        <span class="k">if</span> <span class="n">motor_station</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-96"><a href="#L-96"><span class="linenos"> 96</span></a>            <span class="k">if</span> <span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-97"><a href="#L-97"><span class="linenos"> 97</span></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"motor_station needs dry_cg as well"</span><span class="p">)</span>
-</span><span id="L-98"><a href="#L-98"><span class="linenos"> 98</span></a>            <span class="k">if</span> <span class="n">motor</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">motor</span><span class="o">.</span><span class="n">diameter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-99"><a href="#L-99"><span class="linenos"> 99</span></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"motor_station needs the motor's length and diameter"</span><span class="p">)</span>
-</span><span id="L-100"><a href="#L-100"><span class="linenos">100</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dry_mass</span><span class="p">)</span>
-</span><span id="L-101"><a href="#L-101"><span class="linenos">101</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">inertia</span> <span class="o">=</span> <span class="n">validate_inertia</span><span class="p">(</span><span class="n">inertia</span><span class="p">)</span>
-</span><span id="L-102"><a href="#L-102"><span class="linenos">102</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor</span> <span class="o">=</span> <span class="n">motor</span>
-</span><span id="L-103"><a href="#L-103"><span class="linenos">103</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">geometry</span>
-</span><span id="L-104"><a href="#L-104"><span class="linenos">104</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">drag_model</span> <span class="o">=</span> <span class="n">drag_model</span>
-</span><span id="L-105"><a href="#L-105"><span class="linenos">105</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">=</span> <span class="n">dry_cg</span>
-</span><span id="L-106"><a href="#L-106"><span class="linenos">106</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">=</span> <span class="n">motor_station</span>
-</span><span id="L-107"><a href="#L-107"><span class="linenos">107</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">parachute</span> <span class="o">=</span> <span class="n">parachute</span>
-</span><span id="L-108"><a href="#L-108"><span class="linenos">108</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
-</span><span id="L-109"><a href="#L-109"><span class="linenos">109</span></a>
-</span><span id="L-110"><a href="#L-110"><span class="linenos">110</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span><span id="L-111"><a href="#L-111"><span class="linenos">111</span></a><span class="w">        </span><span class="sd">"""Total mass at time t after ignition [kg]."""</span>
-</span><span id="L-112"><a href="#L-112"><span class="linenos">112</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="L-113"><a href="#L-113"><span class="linenos">113</span></a>
-</span><span id="L-114"><a href="#L-114"><span class="linenos">114</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span><span id="L-115"><a href="#L-115"><span class="linenos">115</span></a><span class="w">        </span><span class="sd">"""Station of the CG at time t [m] (the dry CG if the motor position is unknown)."""</span>
-</span><span id="L-116"><a href="#L-116"><span class="linenos">116</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-117"><a href="#L-117"><span class="linenos">117</span></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span>
-</span><span id="L-118"><a href="#L-118"><span class="linenos">118</span></a>        <span class="n">x_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">length</span>
-</span><span id="L-119"><a href="#L-119"><span class="linenos">119</span></a>        <span class="n">m_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="L-120"><a href="#L-120"><span class="linenos">120</span></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">+</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">x_motor</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="n">m_motor</span><span class="p">)</span>
-</span><span id="L-121"><a href="#L-121"><span class="linenos">121</span></a>
-</span><span id="L-122"><a href="#L-122"><span class="linenos">122</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">inertia_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span><span id="L-123"><a href="#L-123"><span class="linenos">123</span></a><span class="w">        </span><span class="sd">"""Inertia tensor about the current CG, body axes [kg m^2].</span>
-</span><span id="L-124"><a href="#L-124"><span class="linenos">124</span></a>
-</span><span id="L-125"><a href="#L-125"><span class="linenos">125</span></a><span class="sd">        Constant (the dry value) unless ``dry_cg`` and ``motor_station`` were given.</span>
-</span><span id="L-126"><a href="#L-126"><span class="linenos">126</span></a><span class="sd">        """</span>
-</span><span id="L-127"><a href="#L-127"><span class="linenos">127</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-128"><a href="#L-128"><span class="linenos">128</span></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inertia</span>
-</span><span id="L-129"><a href="#L-129"><span class="linenos">129</span></a>        <span class="n">m_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="L-130"><a href="#L-130"><span class="linenos">130</span></a>        <span class="n">r</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">diameter</span>
-</span><span id="L-131"><a href="#L-131"><span class="linenos">131</span></a>        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">length</span>
-</span><span id="L-132"><a href="#L-132"><span class="linenos">132</span></a>        <span class="n">x_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">L</span>
-</span><span id="L-133"><a href="#L-133"><span class="linenos">133</span></a>        <span class="n">x_cg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cg</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="L-134"><a href="#L-134"><span class="linenos">134</span></a>        <span class="c1"># Uniform solid cylinder for the motor, about its own CG.</span>
-</span><span id="L-135"><a href="#L-135"><span class="linenos">135</span></a>        <span class="n">J_motor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="L-136"><a href="#L-136"><span class="linenos">136</span></a>                           <span class="n">m_motor</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">12.0</span><span class="p">,</span>
-</span><span id="L-137"><a href="#L-137"><span class="linenos">137</span></a>                           <span class="n">m_motor</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">12.0</span><span class="p">])</span>
-</span><span id="L-138"><a href="#L-138"><span class="linenos">138</span></a>        <span class="c1"># Parallel-axis theorem for an offset d along body x: adds m d^2 to the</span>
-</span><span id="L-139"><a href="#L-139"><span class="linenos">139</span></a>        <span class="c1"># two transverse moments and nothing to the axial one.</span>
-</span><span id="L-140"><a href="#L-140"><span class="linenos">140</span></a>        <span class="n">shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
-</span><span id="L-141"><a href="#L-141"><span class="linenos">141</span></a>        <span class="n">d_dry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">-</span> <span class="n">x_cg</span>
-</span><span id="L-142"><a href="#L-142"><span class="linenos">142</span></a>        <span class="n">d_motor</span> <span class="o">=</span> <span class="n">x_motor</span> <span class="o">-</span> <span class="n">x_cg</span>
-</span><span id="L-143"><a href="#L-143"><span class="linenos">143</span></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inertia</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">*</span> <span class="n">d_dry</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">shift</span>
-</span><span id="L-144"><a href="#L-144"><span class="linenos">144</span></a>                <span class="o">+</span> <span class="n">J_motor</span> <span class="o">+</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">d_motor</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">shift</span><span class="p">)</span>
+</span><span id="L-43"><a href="#L-43"><span class="linenos"> 43</span></a><span class="sd">    Parameters</span>
+</span><span id="L-44"><a href="#L-44"><span class="linenos"> 44</span></a><span class="sd">    ----------</span>
+</span><span id="L-45"><a href="#L-45"><span class="linenos"> 45</span></a><span class="sd">    dry_mass : float</span>
+</span><span id="L-46"><a href="#L-46"><span class="linenos"> 46</span></a><span class="sd">        Mass of the rocket without its motor [kg].</span>
+</span><span id="L-47"><a href="#L-47"><span class="linenos"> 47</span></a><span class="sd">    inertia : array_like</span>
+</span><span id="L-48"><a href="#L-48"><span class="linenos"> 48</span></a><span class="sd">        Inertia tensor about the CG, body axes [kg m^2] (held constant).</span>
+</span><span id="L-49"><a href="#L-49"><span class="linenos"> 49</span></a><span class="sd">    motor : Motor</span>
+</span><span id="L-50"><a href="#L-50"><span class="linenos"> 50</span></a><span class="sd">        The rocket's motor.</span>
+</span><span id="L-51"><a href="#L-51"><span class="linenos"> 51</span></a><span class="sd">    geometry : Geometry, optional</span>
+</span><span id="L-52"><a href="#L-52"><span class="linenos"> 52</span></a><span class="sd">        External shape. If omitted, no aerodynamic forces act.</span>
+</span><span id="L-53"><a href="#L-53"><span class="linenos"> 53</span></a><span class="sd">    drag_model : callable, optional</span>
+</span><span id="L-54"><a href="#L-54"><span class="linenos"> 54</span></a><span class="sd">        ``drag_model(mach)`` returning C_D. Needed with ``geometry``.</span>
+</span><span id="L-55"><a href="#L-55"><span class="linenos"> 55</span></a><span class="sd">    dry_cg : float, optional</span>
+</span><span id="L-56"><a href="#L-56"><span class="linenos"> 56</span></a><span class="sd">        Station of the dry CG, aft of the nose tip [m]. Needed with ``geometry``.</span>
+</span><span id="L-57"><a href="#L-57"><span class="linenos"> 57</span></a><span class="sd">    motor_station : float, optional</span>
+</span><span id="L-58"><a href="#L-58"><span class="linenos"> 58</span></a><span class="sd">        Station of the motor's front end [m]. With ``dry_cg``, the CG moves as</span>
+</span><span id="L-59"><a href="#L-59"><span class="linenos"> 59</span></a><span class="sd">        propellant burns (needs the motor's length).</span>
+</span><span id="L-60"><a href="#L-60"><span class="linenos"> 60</span></a><span class="sd">    parachute : Parachute, optional</span>
+</span><span id="L-61"><a href="#L-61"><span class="linenos"> 61</span></a><span class="sd">        Deployed at apogee if given.</span>
+</span><span id="L-62"><a href="#L-62"><span class="linenos"> 62</span></a><span class="sd">    name : str</span>
+</span><span id="L-63"><a href="#L-63"><span class="linenos"> 63</span></a><span class="sd">        Label for printouts.</span>
+</span><span id="L-64"><a href="#L-64"><span class="linenos"> 64</span></a>
+</span><span id="L-65"><a href="#L-65"><span class="linenos"> 65</span></a><span class="sd">    Raises</span>
+</span><span id="L-66"><a href="#L-66"><span class="linenos"> 66</span></a><span class="sd">    ------</span>
+</span><span id="L-67"><a href="#L-67"><span class="linenos"> 67</span></a><span class="sd">    ValueError</span>
+</span><span id="L-68"><a href="#L-68"><span class="linenos"> 68</span></a><span class="sd">        If the dry mass is not positive, the inertia tensor is invalid, or the</span>
+</span><span id="L-69"><a href="#L-69"><span class="linenos"> 69</span></a><span class="sd">        optional data are inconsistent.</span>
+</span><span id="L-70"><a href="#L-70"><span class="linenos"> 70</span></a><span class="sd">    """</span>
+</span><span id="L-71"><a href="#L-71"><span class="linenos"> 71</span></a>
+</span><span id="L-72"><a href="#L-72"><span class="linenos"> 72</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dry_mass</span><span class="p">,</span> <span class="n">inertia</span><span class="p">,</span> <span class="n">motor</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drag_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="L-73"><a href="#L-73"><span class="linenos"> 73</span></a>                 <span class="n">dry_cg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">motor_station</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parachute</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"rocket"</span><span class="p">):</span>
+</span><span id="L-74"><a href="#L-74"><span class="linenos"> 74</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">dry_mass</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span id="L-75"><a href="#L-75"><span class="linenos"> 75</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Dry mass must be positive, got </span><span class="si">{</span><span class="n">dry_mass</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="L-76"><a href="#L-76"><span class="linenos"> 76</span></a>        <span class="k">if</span> <span class="n">geometry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">drag_model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+</span><span id="L-77"><a href="#L-77"><span class="linenos"> 77</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a rocket with geometry also needs a drag_model and dry_cg"</span><span class="p">)</span>
+</span><span id="L-78"><a href="#L-78"><span class="linenos"> 78</span></a>        <span class="k">if</span> <span class="n">motor_station</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">motor</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+</span><span id="L-79"><a href="#L-79"><span class="linenos"> 79</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"motor_station needs dry_cg and the motor's length"</span><span class="p">)</span>
+</span><span id="L-80"><a href="#L-80"><span class="linenos"> 80</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dry_mass</span><span class="p">)</span>
+</span><span id="L-81"><a href="#L-81"><span class="linenos"> 81</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">inertia</span> <span class="o">=</span> <span class="n">validate_inertia</span><span class="p">(</span><span class="n">inertia</span><span class="p">)</span>
+</span><span id="L-82"><a href="#L-82"><span class="linenos"> 82</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor</span> <span class="o">=</span> <span class="n">motor</span>
+</span><span id="L-83"><a href="#L-83"><span class="linenos"> 83</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">geometry</span>
+</span><span id="L-84"><a href="#L-84"><span class="linenos"> 84</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">drag_model</span> <span class="o">=</span> <span class="n">drag_model</span>
+</span><span id="L-85"><a href="#L-85"><span class="linenos"> 85</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">=</span> <span class="n">dry_cg</span>
+</span><span id="L-86"><a href="#L-86"><span class="linenos"> 86</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">=</span> <span class="n">motor_station</span>
+</span><span id="L-87"><a href="#L-87"><span class="linenos"> 87</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">parachute</span> <span class="o">=</span> <span class="n">parachute</span>
+</span><span id="L-88"><a href="#L-88"><span class="linenos"> 88</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+</span><span id="L-89"><a href="#L-89"><span class="linenos"> 89</span></a>
+</span><span id="L-90"><a href="#L-90"><span class="linenos"> 90</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+</span><span id="L-91"><a href="#L-91"><span class="linenos"> 91</span></a><span class="w">        </span><span class="sd">"""Total mass at time t after ignition [kg]."""</span>
+</span><span id="L-92"><a href="#L-92"><span class="linenos"> 92</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</span><span id="L-93"><a href="#L-93"><span class="linenos"> 93</span></a>
+</span><span id="L-94"><a href="#L-94"><span class="linenos"> 94</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+</span><span id="L-95"><a href="#L-95"><span class="linenos"> 95</span></a><span class="w">        </span><span class="sd">"""Station of the CG at time t [m]: mass-weighted average of dry rocket and motor."""</span>
+</span><span id="L-96"><a href="#L-96"><span class="linenos"> 96</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-97"><a href="#L-97"><span class="linenos"> 97</span></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span>
+</span><span id="L-98"><a href="#L-98"><span class="linenos"> 98</span></a>        <span class="n">x_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">length</span>    <span class="c1"># middle of the motor</span>
+</span><span id="L-99"><a href="#L-99"><span class="linenos"> 99</span></a>        <span class="n">m_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</span><span id="L-100"><a href="#L-100"><span class="linenos">100</span></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">+</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">x_motor</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="n">m_motor</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -293,31 +232,31 @@ neglected in Euler's equation; see <code>rigid_body.py</code>.</p>
 
     </div>
     <a class="headerlink" href="#Parachute"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Parachute-29"><a href="#Parachute-29"><span class="linenos">29</span></a><span class="nd">@dataclass</span>
-</span><span id="Parachute-30"><a href="#Parachute-30"><span class="linenos">30</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Parachute</span><span class="p">:</span>
-</span><span id="Parachute-31"><a href="#Parachute-31"><span class="linenos">31</span></a><span class="w">    </span><span class="sd">"""A recovery parachute, deployed at apogee.</span>
-</span><span id="Parachute-32"><a href="#Parachute-32"><span class="linenos">32</span></a>
-</span><span id="Parachute-33"><a href="#Parachute-33"><span class="linenos">33</span></a><span class="sd">    Attributes</span>
-</span><span id="Parachute-34"><a href="#Parachute-34"><span class="linenos">34</span></a><span class="sd">    ----------</span>
-</span><span id="Parachute-35"><a href="#Parachute-35"><span class="linenos">35</span></a><span class="sd">    diameter : float</span>
-</span><span id="Parachute-36"><a href="#Parachute-36"><span class="linenos">36</span></a><span class="sd">        Canopy diameter [m].</span>
-</span><span id="Parachute-37"><a href="#Parachute-37"><span class="linenos">37</span></a><span class="sd">    drag_coefficient : float</span>
-</span><span id="Parachute-38"><a href="#Parachute-38"><span class="linenos">38</span></a><span class="sd">        Drag coefficient based on canopy area [-].</span>
-</span><span id="Parachute-39"><a href="#Parachute-39"><span class="linenos">39</span></a><span class="sd">    """</span>
-</span><span id="Parachute-40"><a href="#Parachute-40"><span class="linenos">40</span></a>
-</span><span id="Parachute-41"><a href="#Parachute-41"><span class="linenos">41</span></a>    <span class="n">diameter</span><span class="p">:</span> <span class="nb">float</span>
-</span><span id="Parachute-42"><a href="#Parachute-42"><span class="linenos">42</span></a>    <span class="n">drag_coefficient</span><span class="p">:</span> <span class="nb">float</span>
-</span><span id="Parachute-43"><a href="#Parachute-43"><span class="linenos">43</span></a>
-</span><span id="Parachute-44"><a href="#Parachute-44"><span class="linenos">44</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="Parachute-45"><a href="#Parachute-45"><span class="linenos">45</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span id="Parachute-46"><a href="#Parachute-46"><span class="linenos">46</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parachute 'diameter' must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="Parachute-47"><a href="#Parachute-47"><span class="linenos">47</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">drag_coefficient</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span id="Parachute-48"><a href="#Parachute-48"><span class="linenos">48</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parachute 'drag_coefficient' must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">drag_coefficient</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="Parachute-49"><a href="#Parachute-49"><span class="linenos">49</span></a>
-</span><span id="Parachute-50"><a href="#Parachute-50"><span class="linenos">50</span></a>    <span class="nd">@property</span>
-</span><span id="Parachute-51"><a href="#Parachute-51"><span class="linenos">51</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="Parachute-52"><a href="#Parachute-52"><span class="linenos">52</span></a><span class="w">        </span><span class="sd">"""Canopy reference area pi d^2 / 4 [m^2]."""</span>
-</span><span id="Parachute-53"><a href="#Parachute-53"><span class="linenos">53</span></a>        <span class="k">return</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="o">**</span><span class="mi">2</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Parachute-14"><a href="#Parachute-14"><span class="linenos">14</span></a><span class="nd">@dataclass</span>
+</span><span id="Parachute-15"><a href="#Parachute-15"><span class="linenos">15</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Parachute</span><span class="p">:</span>
+</span><span id="Parachute-16"><a href="#Parachute-16"><span class="linenos">16</span></a><span class="w">    </span><span class="sd">"""A recovery parachute, deployed at apogee.</span>
+</span><span id="Parachute-17"><a href="#Parachute-17"><span class="linenos">17</span></a>
+</span><span id="Parachute-18"><a href="#Parachute-18"><span class="linenos">18</span></a><span class="sd">    Attributes</span>
+</span><span id="Parachute-19"><a href="#Parachute-19"><span class="linenos">19</span></a><span class="sd">    ----------</span>
+</span><span id="Parachute-20"><a href="#Parachute-20"><span class="linenos">20</span></a><span class="sd">    diameter : float</span>
+</span><span id="Parachute-21"><a href="#Parachute-21"><span class="linenos">21</span></a><span class="sd">        Canopy diameter [m].</span>
+</span><span id="Parachute-22"><a href="#Parachute-22"><span class="linenos">22</span></a><span class="sd">    drag_coefficient : float</span>
+</span><span id="Parachute-23"><a href="#Parachute-23"><span class="linenos">23</span></a><span class="sd">        Drag coefficient based on canopy area [-].</span>
+</span><span id="Parachute-24"><a href="#Parachute-24"><span class="linenos">24</span></a><span class="sd">    """</span>
+</span><span id="Parachute-25"><a href="#Parachute-25"><span class="linenos">25</span></a>
+</span><span id="Parachute-26"><a href="#Parachute-26"><span class="linenos">26</span></a>    <span class="n">diameter</span><span class="p">:</span> <span class="nb">float</span>
+</span><span id="Parachute-27"><a href="#Parachute-27"><span class="linenos">27</span></a>    <span class="n">drag_coefficient</span><span class="p">:</span> <span class="nb">float</span>
+</span><span id="Parachute-28"><a href="#Parachute-28"><span class="linenos">28</span></a>
+</span><span id="Parachute-29"><a href="#Parachute-29"><span class="linenos">29</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="Parachute-30"><a href="#Parachute-30"><span class="linenos">30</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span id="Parachute-31"><a href="#Parachute-31"><span class="linenos">31</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parachute 'diameter' must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="Parachute-32"><a href="#Parachute-32"><span class="linenos">32</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">drag_coefficient</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span id="Parachute-33"><a href="#Parachute-33"><span class="linenos">33</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parachute 'drag_coefficient' must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">drag_coefficient</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="Parachute-34"><a href="#Parachute-34"><span class="linenos">34</span></a>
+</span><span id="Parachute-35"><a href="#Parachute-35"><span class="linenos">35</span></a>    <span class="nd">@property</span>
+</span><span id="Parachute-36"><a href="#Parachute-36"><span class="linenos">36</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="Parachute-37"><a href="#Parachute-37"><span class="linenos">37</span></a><span class="w">        </span><span class="sd">"""Canopy reference area pi d^2 / 4 [m^2]."""</span>
+</span><span id="Parachute-38"><a href="#Parachute-38"><span class="linenos">38</span></a>        <span class="k">return</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="o">**</span><span class="mi">2</span>
 </span></pre></div>
 
 
@@ -377,10 +316,10 @@ Drag coefficient based on canopy area [-].</li>
 
     </div>
     <a class="headerlink" href="#Parachute.area"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Parachute.area-50"><a href="#Parachute.area-50"><span class="linenos">50</span></a>    <span class="nd">@property</span>
-</span><span id="Parachute.area-51"><a href="#Parachute.area-51"><span class="linenos">51</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="Parachute.area-52"><a href="#Parachute.area-52"><span class="linenos">52</span></a><span class="w">        </span><span class="sd">"""Canopy reference area pi d^2 / 4 [m^2]."""</span>
-</span><span id="Parachute.area-53"><a href="#Parachute.area-53"><span class="linenos">53</span></a>        <span class="k">return</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="o">**</span><span class="mi">2</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Parachute.area-35"><a href="#Parachute.area-35"><span class="linenos">35</span></a>    <span class="nd">@property</span>
+</span><span id="Parachute.area-36"><a href="#Parachute.area-36"><span class="linenos">36</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">area</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="Parachute.area-37"><a href="#Parachute.area-37"><span class="linenos">37</span></a><span class="w">        </span><span class="sd">"""Canopy reference area pi d^2 / 4 [m^2]."""</span>
+</span><span id="Parachute.area-38"><a href="#Parachute.area-38"><span class="linenos">38</span></a>        <span class="k">return</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">diameter</span><span class="o">**</span><span class="mi">2</span>
 </span></pre></div>
 
 
@@ -401,96 +340,67 @@ Drag coefficient based on canopy area [-].</li>
 
     </div>
     <a class="headerlink" href="#Rocket"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Rocket-56"><a href="#Rocket-56"><span class="linenos"> 56</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Rocket</span><span class="p">:</span>
-</span><span id="Rocket-57"><a href="#Rocket-57"><span class="linenos"> 57</span></a><span class="w">    </span><span class="sd">"""A single stage rocket.</span>
-</span><span id="Rocket-58"><a href="#Rocket-58"><span class="linenos"> 58</span></a>
-</span><span id="Rocket-59"><a href="#Rocket-59"><span class="linenos"> 59</span></a><span class="sd">    Parameters</span>
-</span><span id="Rocket-60"><a href="#Rocket-60"><span class="linenos"> 60</span></a><span class="sd">    ----------</span>
-</span><span id="Rocket-61"><a href="#Rocket-61"><span class="linenos"> 61</span></a><span class="sd">    dry_mass : float</span>
-</span><span id="Rocket-62"><a href="#Rocket-62"><span class="linenos"> 62</span></a><span class="sd">        Mass of the rocket without its motor [kg].</span>
-</span><span id="Rocket-63"><a href="#Rocket-63"><span class="linenos"> 63</span></a><span class="sd">    inertia : array_like</span>
-</span><span id="Rocket-64"><a href="#Rocket-64"><span class="linenos"> 64</span></a><span class="sd">        Inertia tensor of the dry rocket about its own CG, body axes [kg m^2].</span>
-</span><span id="Rocket-65"><a href="#Rocket-65"><span class="linenos"> 65</span></a><span class="sd">    motor : Motor</span>
-</span><span id="Rocket-66"><a href="#Rocket-66"><span class="linenos"> 66</span></a><span class="sd">        The rocket's motor.</span>
-</span><span id="Rocket-67"><a href="#Rocket-67"><span class="linenos"> 67</span></a><span class="sd">    geometry : Geometry, optional</span>
-</span><span id="Rocket-68"><a href="#Rocket-68"><span class="linenos"> 68</span></a><span class="sd">        External shape. If omitted, no aerodynamic forces act.</span>
-</span><span id="Rocket-69"><a href="#Rocket-69"><span class="linenos"> 69</span></a><span class="sd">    drag_model : callable, optional</span>
-</span><span id="Rocket-70"><a href="#Rocket-70"><span class="linenos"> 70</span></a><span class="sd">        ``drag_model(mach, reynolds)`` returning C_D. Needed with ``geometry``.</span>
-</span><span id="Rocket-71"><a href="#Rocket-71"><span class="linenos"> 71</span></a><span class="sd">    dry_cg : float, optional</span>
-</span><span id="Rocket-72"><a href="#Rocket-72"><span class="linenos"> 72</span></a><span class="sd">        Station of the dry CG, aft of the nose tip [m].</span>
-</span><span id="Rocket-73"><a href="#Rocket-73"><span class="linenos"> 73</span></a><span class="sd">    motor_station : float, optional</span>
-</span><span id="Rocket-74"><a href="#Rocket-74"><span class="linenos"> 74</span></a><span class="sd">        Station of the motor's front end [m]. With ``dry_cg``, makes the CG</span>
-</span><span id="Rocket-75"><a href="#Rocket-75"><span class="linenos"> 75</span></a><span class="sd">        and inertia vary during the burn. Needs the motor's length.</span>
-</span><span id="Rocket-76"><a href="#Rocket-76"><span class="linenos"> 76</span></a><span class="sd">    parachute : Parachute, optional</span>
-</span><span id="Rocket-77"><a href="#Rocket-77"><span class="linenos"> 77</span></a><span class="sd">        Deployed at apogee if given.</span>
-</span><span id="Rocket-78"><a href="#Rocket-78"><span class="linenos"> 78</span></a><span class="sd">    name : str</span>
-</span><span id="Rocket-79"><a href="#Rocket-79"><span class="linenos"> 79</span></a><span class="sd">        Label for printouts.</span>
-</span><span id="Rocket-80"><a href="#Rocket-80"><span class="linenos"> 80</span></a>
-</span><span id="Rocket-81"><a href="#Rocket-81"><span class="linenos"> 81</span></a><span class="sd">    Raises</span>
-</span><span id="Rocket-82"><a href="#Rocket-82"><span class="linenos"> 82</span></a><span class="sd">    ------</span>
-</span><span id="Rocket-83"><a href="#Rocket-83"><span class="linenos"> 83</span></a><span class="sd">    ValueError</span>
-</span><span id="Rocket-84"><a href="#Rocket-84"><span class="linenos"> 84</span></a><span class="sd">        If the dry mass is not positive, the inertia tensor is invalid, or</span>
-</span><span id="Rocket-85"><a href="#Rocket-85"><span class="linenos"> 85</span></a><span class="sd">        the optional data are inconsistent.</span>
-</span><span id="Rocket-86"><a href="#Rocket-86"><span class="linenos"> 86</span></a><span class="sd">    """</span>
-</span><span id="Rocket-87"><a href="#Rocket-87"><span class="linenos"> 87</span></a>
-</span><span id="Rocket-88"><a href="#Rocket-88"><span class="linenos"> 88</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dry_mass</span><span class="p">,</span> <span class="n">inertia</span><span class="p">,</span> <span class="n">motor</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drag_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span id="Rocket-89"><a href="#Rocket-89"><span class="linenos"> 89</span></a>                 <span class="n">dry_cg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">motor_station</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parachute</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"rocket"</span><span class="p">):</span>
-</span><span id="Rocket-90"><a href="#Rocket-90"><span class="linenos"> 90</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">dry_mass</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span id="Rocket-91"><a href="#Rocket-91"><span class="linenos"> 91</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Dry mass must be positive, got </span><span class="si">{</span><span class="n">dry_mass</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="Rocket-92"><a href="#Rocket-92"><span class="linenos"> 92</span></a>        <span class="k">if</span> <span class="n">geometry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">drag_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket-93"><a href="#Rocket-93"><span class="linenos"> 93</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a rocket with geometry also needs a drag_model"</span><span class="p">)</span>
-</span><span id="Rocket-94"><a href="#Rocket-94"><span class="linenos"> 94</span></a>        <span class="k">if</span> <span class="n">geometry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket-95"><a href="#Rocket-95"><span class="linenos"> 95</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a rocket with geometry also needs dry_cg (for the moment arm)"</span><span class="p">)</span>
-</span><span id="Rocket-96"><a href="#Rocket-96"><span class="linenos"> 96</span></a>        <span class="k">if</span> <span class="n">motor_station</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket-97"><a href="#Rocket-97"><span class="linenos"> 97</span></a>            <span class="k">if</span> <span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket-98"><a href="#Rocket-98"><span class="linenos"> 98</span></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"motor_station needs dry_cg as well"</span><span class="p">)</span>
-</span><span id="Rocket-99"><a href="#Rocket-99"><span class="linenos"> 99</span></a>            <span class="k">if</span> <span class="n">motor</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">motor</span><span class="o">.</span><span class="n">diameter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket-100"><a href="#Rocket-100"><span class="linenos">100</span></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"motor_station needs the motor's length and diameter"</span><span class="p">)</span>
-</span><span id="Rocket-101"><a href="#Rocket-101"><span class="linenos">101</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dry_mass</span><span class="p">)</span>
-</span><span id="Rocket-102"><a href="#Rocket-102"><span class="linenos">102</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">inertia</span> <span class="o">=</span> <span class="n">validate_inertia</span><span class="p">(</span><span class="n">inertia</span><span class="p">)</span>
-</span><span id="Rocket-103"><a href="#Rocket-103"><span class="linenos">103</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor</span> <span class="o">=</span> <span class="n">motor</span>
-</span><span id="Rocket-104"><a href="#Rocket-104"><span class="linenos">104</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">geometry</span>
-</span><span id="Rocket-105"><a href="#Rocket-105"><span class="linenos">105</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">drag_model</span> <span class="o">=</span> <span class="n">drag_model</span>
-</span><span id="Rocket-106"><a href="#Rocket-106"><span class="linenos">106</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">=</span> <span class="n">dry_cg</span>
-</span><span id="Rocket-107"><a href="#Rocket-107"><span class="linenos">107</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">=</span> <span class="n">motor_station</span>
-</span><span id="Rocket-108"><a href="#Rocket-108"><span class="linenos">108</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">parachute</span> <span class="o">=</span> <span class="n">parachute</span>
-</span><span id="Rocket-109"><a href="#Rocket-109"><span class="linenos">109</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
-</span><span id="Rocket-110"><a href="#Rocket-110"><span class="linenos">110</span></a>
-</span><span id="Rocket-111"><a href="#Rocket-111"><span class="linenos">111</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span><span id="Rocket-112"><a href="#Rocket-112"><span class="linenos">112</span></a><span class="w">        </span><span class="sd">"""Total mass at time t after ignition [kg]."""</span>
-</span><span id="Rocket-113"><a href="#Rocket-113"><span class="linenos">113</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="Rocket-114"><a href="#Rocket-114"><span class="linenos">114</span></a>
-</span><span id="Rocket-115"><a href="#Rocket-115"><span class="linenos">115</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span><span id="Rocket-116"><a href="#Rocket-116"><span class="linenos">116</span></a><span class="w">        </span><span class="sd">"""Station of the CG at time t [m] (the dry CG if the motor position is unknown)."""</span>
-</span><span id="Rocket-117"><a href="#Rocket-117"><span class="linenos">117</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket-118"><a href="#Rocket-118"><span class="linenos">118</span></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span>
-</span><span id="Rocket-119"><a href="#Rocket-119"><span class="linenos">119</span></a>        <span class="n">x_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">length</span>
-</span><span id="Rocket-120"><a href="#Rocket-120"><span class="linenos">120</span></a>        <span class="n">m_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="Rocket-121"><a href="#Rocket-121"><span class="linenos">121</span></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">+</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">x_motor</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="n">m_motor</span><span class="p">)</span>
-</span><span id="Rocket-122"><a href="#Rocket-122"><span class="linenos">122</span></a>
-</span><span id="Rocket-123"><a href="#Rocket-123"><span class="linenos">123</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">inertia_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span><span id="Rocket-124"><a href="#Rocket-124"><span class="linenos">124</span></a><span class="w">        </span><span class="sd">"""Inertia tensor about the current CG, body axes [kg m^2].</span>
-</span><span id="Rocket-125"><a href="#Rocket-125"><span class="linenos">125</span></a>
-</span><span id="Rocket-126"><a href="#Rocket-126"><span class="linenos">126</span></a><span class="sd">        Constant (the dry value) unless ``dry_cg`` and ``motor_station`` were given.</span>
-</span><span id="Rocket-127"><a href="#Rocket-127"><span class="linenos">127</span></a><span class="sd">        """</span>
-</span><span id="Rocket-128"><a href="#Rocket-128"><span class="linenos">128</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket-129"><a href="#Rocket-129"><span class="linenos">129</span></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inertia</span>
-</span><span id="Rocket-130"><a href="#Rocket-130"><span class="linenos">130</span></a>        <span class="n">m_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="Rocket-131"><a href="#Rocket-131"><span class="linenos">131</span></a>        <span class="n">r</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">diameter</span>
-</span><span id="Rocket-132"><a href="#Rocket-132"><span class="linenos">132</span></a>        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">length</span>
-</span><span id="Rocket-133"><a href="#Rocket-133"><span class="linenos">133</span></a>        <span class="n">x_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">L</span>
-</span><span id="Rocket-134"><a href="#Rocket-134"><span class="linenos">134</span></a>        <span class="n">x_cg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cg</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="Rocket-135"><a href="#Rocket-135"><span class="linenos">135</span></a>        <span class="c1"># Uniform solid cylinder for the motor, about its own CG.</span>
-</span><span id="Rocket-136"><a href="#Rocket-136"><span class="linenos">136</span></a>        <span class="n">J_motor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="Rocket-137"><a href="#Rocket-137"><span class="linenos">137</span></a>                           <span class="n">m_motor</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">12.0</span><span class="p">,</span>
-</span><span id="Rocket-138"><a href="#Rocket-138"><span class="linenos">138</span></a>                           <span class="n">m_motor</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">12.0</span><span class="p">])</span>
-</span><span id="Rocket-139"><a href="#Rocket-139"><span class="linenos">139</span></a>        <span class="c1"># Parallel-axis theorem for an offset d along body x: adds m d^2 to the</span>
-</span><span id="Rocket-140"><a href="#Rocket-140"><span class="linenos">140</span></a>        <span class="c1"># two transverse moments and nothing to the axial one.</span>
-</span><span id="Rocket-141"><a href="#Rocket-141"><span class="linenos">141</span></a>        <span class="n">shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
-</span><span id="Rocket-142"><a href="#Rocket-142"><span class="linenos">142</span></a>        <span class="n">d_dry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">-</span> <span class="n">x_cg</span>
-</span><span id="Rocket-143"><a href="#Rocket-143"><span class="linenos">143</span></a>        <span class="n">d_motor</span> <span class="o">=</span> <span class="n">x_motor</span> <span class="o">-</span> <span class="n">x_cg</span>
-</span><span id="Rocket-144"><a href="#Rocket-144"><span class="linenos">144</span></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inertia</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">*</span> <span class="n">d_dry</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">shift</span>
-</span><span id="Rocket-145"><a href="#Rocket-145"><span class="linenos">145</span></a>                <span class="o">+</span> <span class="n">J_motor</span> <span class="o">+</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">d_motor</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">shift</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Rocket-41"><a href="#Rocket-41"><span class="linenos"> 41</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Rocket</span><span class="p">:</span>
+</span><span id="Rocket-42"><a href="#Rocket-42"><span class="linenos"> 42</span></a><span class="w">    </span><span class="sd">"""A single stage rocket.</span>
+</span><span id="Rocket-43"><a href="#Rocket-43"><span class="linenos"> 43</span></a>
+</span><span id="Rocket-44"><a href="#Rocket-44"><span class="linenos"> 44</span></a><span class="sd">    Parameters</span>
+</span><span id="Rocket-45"><a href="#Rocket-45"><span class="linenos"> 45</span></a><span class="sd">    ----------</span>
+</span><span id="Rocket-46"><a href="#Rocket-46"><span class="linenos"> 46</span></a><span class="sd">    dry_mass : float</span>
+</span><span id="Rocket-47"><a href="#Rocket-47"><span class="linenos"> 47</span></a><span class="sd">        Mass of the rocket without its motor [kg].</span>
+</span><span id="Rocket-48"><a href="#Rocket-48"><span class="linenos"> 48</span></a><span class="sd">    inertia : array_like</span>
+</span><span id="Rocket-49"><a href="#Rocket-49"><span class="linenos"> 49</span></a><span class="sd">        Inertia tensor about the CG, body axes [kg m^2] (held constant).</span>
+</span><span id="Rocket-50"><a href="#Rocket-50"><span class="linenos"> 50</span></a><span class="sd">    motor : Motor</span>
+</span><span id="Rocket-51"><a href="#Rocket-51"><span class="linenos"> 51</span></a><span class="sd">        The rocket's motor.</span>
+</span><span id="Rocket-52"><a href="#Rocket-52"><span class="linenos"> 52</span></a><span class="sd">    geometry : Geometry, optional</span>
+</span><span id="Rocket-53"><a href="#Rocket-53"><span class="linenos"> 53</span></a><span class="sd">        External shape. If omitted, no aerodynamic forces act.</span>
+</span><span id="Rocket-54"><a href="#Rocket-54"><span class="linenos"> 54</span></a><span class="sd">    drag_model : callable, optional</span>
+</span><span id="Rocket-55"><a href="#Rocket-55"><span class="linenos"> 55</span></a><span class="sd">        ``drag_model(mach)`` returning C_D. Needed with ``geometry``.</span>
+</span><span id="Rocket-56"><a href="#Rocket-56"><span class="linenos"> 56</span></a><span class="sd">    dry_cg : float, optional</span>
+</span><span id="Rocket-57"><a href="#Rocket-57"><span class="linenos"> 57</span></a><span class="sd">        Station of the dry CG, aft of the nose tip [m]. Needed with ``geometry``.</span>
+</span><span id="Rocket-58"><a href="#Rocket-58"><span class="linenos"> 58</span></a><span class="sd">    motor_station : float, optional</span>
+</span><span id="Rocket-59"><a href="#Rocket-59"><span class="linenos"> 59</span></a><span class="sd">        Station of the motor's front end [m]. With ``dry_cg``, the CG moves as</span>
+</span><span id="Rocket-60"><a href="#Rocket-60"><span class="linenos"> 60</span></a><span class="sd">        propellant burns (needs the motor's length).</span>
+</span><span id="Rocket-61"><a href="#Rocket-61"><span class="linenos"> 61</span></a><span class="sd">    parachute : Parachute, optional</span>
+</span><span id="Rocket-62"><a href="#Rocket-62"><span class="linenos"> 62</span></a><span class="sd">        Deployed at apogee if given.</span>
+</span><span id="Rocket-63"><a href="#Rocket-63"><span class="linenos"> 63</span></a><span class="sd">    name : str</span>
+</span><span id="Rocket-64"><a href="#Rocket-64"><span class="linenos"> 64</span></a><span class="sd">        Label for printouts.</span>
+</span><span id="Rocket-65"><a href="#Rocket-65"><span class="linenos"> 65</span></a>
+</span><span id="Rocket-66"><a href="#Rocket-66"><span class="linenos"> 66</span></a><span class="sd">    Raises</span>
+</span><span id="Rocket-67"><a href="#Rocket-67"><span class="linenos"> 67</span></a><span class="sd">    ------</span>
+</span><span id="Rocket-68"><a href="#Rocket-68"><span class="linenos"> 68</span></a><span class="sd">    ValueError</span>
+</span><span id="Rocket-69"><a href="#Rocket-69"><span class="linenos"> 69</span></a><span class="sd">        If the dry mass is not positive, the inertia tensor is invalid, or the</span>
+</span><span id="Rocket-70"><a href="#Rocket-70"><span class="linenos"> 70</span></a><span class="sd">        optional data are inconsistent.</span>
+</span><span id="Rocket-71"><a href="#Rocket-71"><span class="linenos"> 71</span></a><span class="sd">    """</span>
+</span><span id="Rocket-72"><a href="#Rocket-72"><span class="linenos"> 72</span></a>
+</span><span id="Rocket-73"><a href="#Rocket-73"><span class="linenos"> 73</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dry_mass</span><span class="p">,</span> <span class="n">inertia</span><span class="p">,</span> <span class="n">motor</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drag_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="Rocket-74"><a href="#Rocket-74"><span class="linenos"> 74</span></a>                 <span class="n">dry_cg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">motor_station</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parachute</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"rocket"</span><span class="p">):</span>
+</span><span id="Rocket-75"><a href="#Rocket-75"><span class="linenos"> 75</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">dry_mass</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span id="Rocket-76"><a href="#Rocket-76"><span class="linenos"> 76</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Dry mass must be positive, got </span><span class="si">{</span><span class="n">dry_mass</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="Rocket-77"><a href="#Rocket-77"><span class="linenos"> 77</span></a>        <span class="k">if</span> <span class="n">geometry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">drag_model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+</span><span id="Rocket-78"><a href="#Rocket-78"><span class="linenos"> 78</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a rocket with geometry also needs a drag_model and dry_cg"</span><span class="p">)</span>
+</span><span id="Rocket-79"><a href="#Rocket-79"><span class="linenos"> 79</span></a>        <span class="k">if</span> <span class="n">motor_station</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">motor</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+</span><span id="Rocket-80"><a href="#Rocket-80"><span class="linenos"> 80</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"motor_station needs dry_cg and the motor's length"</span><span class="p">)</span>
+</span><span id="Rocket-81"><a href="#Rocket-81"><span class="linenos"> 81</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dry_mass</span><span class="p">)</span>
+</span><span id="Rocket-82"><a href="#Rocket-82"><span class="linenos"> 82</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">inertia</span> <span class="o">=</span> <span class="n">validate_inertia</span><span class="p">(</span><span class="n">inertia</span><span class="p">)</span>
+</span><span id="Rocket-83"><a href="#Rocket-83"><span class="linenos"> 83</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor</span> <span class="o">=</span> <span class="n">motor</span>
+</span><span id="Rocket-84"><a href="#Rocket-84"><span class="linenos"> 84</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">geometry</span>
+</span><span id="Rocket-85"><a href="#Rocket-85"><span class="linenos"> 85</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">drag_model</span> <span class="o">=</span> <span class="n">drag_model</span>
+</span><span id="Rocket-86"><a href="#Rocket-86"><span class="linenos"> 86</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">=</span> <span class="n">dry_cg</span>
+</span><span id="Rocket-87"><a href="#Rocket-87"><span class="linenos"> 87</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">=</span> <span class="n">motor_station</span>
+</span><span id="Rocket-88"><a href="#Rocket-88"><span class="linenos"> 88</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">parachute</span> <span class="o">=</span> <span class="n">parachute</span>
+</span><span id="Rocket-89"><a href="#Rocket-89"><span class="linenos"> 89</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+</span><span id="Rocket-90"><a href="#Rocket-90"><span class="linenos"> 90</span></a>
+</span><span id="Rocket-91"><a href="#Rocket-91"><span class="linenos"> 91</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+</span><span id="Rocket-92"><a href="#Rocket-92"><span class="linenos"> 92</span></a><span class="w">        </span><span class="sd">"""Total mass at time t after ignition [kg]."""</span>
+</span><span id="Rocket-93"><a href="#Rocket-93"><span class="linenos"> 93</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</span><span id="Rocket-94"><a href="#Rocket-94"><span class="linenos"> 94</span></a>
+</span><span id="Rocket-95"><a href="#Rocket-95"><span class="linenos"> 95</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+</span><span id="Rocket-96"><a href="#Rocket-96"><span class="linenos"> 96</span></a><span class="w">        </span><span class="sd">"""Station of the CG at time t [m]: mass-weighted average of dry rocket and motor."""</span>
+</span><span id="Rocket-97"><a href="#Rocket-97"><span class="linenos"> 97</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="Rocket-98"><a href="#Rocket-98"><span class="linenos"> 98</span></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span>
+</span><span id="Rocket-99"><a href="#Rocket-99"><span class="linenos"> 99</span></a>        <span class="n">x_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">length</span>    <span class="c1"># middle of the motor</span>
+</span><span id="Rocket-100"><a href="#Rocket-100"><span class="linenos">100</span></a>        <span class="n">m_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</span><span id="Rocket-101"><a href="#Rocket-101"><span class="linenos">101</span></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">+</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">x_motor</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="n">m_motor</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -502,18 +412,18 @@ Drag coefficient based on canopy area [-].</li>
 <li><strong>dry_mass</strong> (float):
 Mass of the rocket without its motor [kg].</li>
 <li><strong>inertia</strong> (array_like):
-Inertia tensor of the dry rocket about its own CG, body axes [kg m^2].</li>
+Inertia tensor about the CG, body axes [kg m^2] (held constant).</li>
 <li><strong>motor</strong> (Motor):
 The rocket's motor.</li>
 <li><strong>geometry</strong> (Geometry, optional):
 External shape. If omitted, no aerodynamic forces act.</li>
 <li><strong>drag_model</strong> (callable, optional):
-<code>drag_model(mach, reynolds)</code> returning C_D. Needed with <code><a href="#Rocket.geometry">geometry</a></code>.</li>
+<code>drag_model(mach)</code> returning C_D. Needed with <code><a href="#Rocket.geometry">geometry</a></code>.</li>
 <li><strong>dry_cg</strong> (float, optional):
-Station of the dry CG, aft of the nose tip [m].</li>
+Station of the dry CG, aft of the nose tip [m]. Needed with <code><a href="#Rocket.geometry">geometry</a></code>.</li>
 <li><strong>motor_station</strong> (float, optional):
-Station of the motor's front end [m]. With <code><a href="#Rocket.dry_cg">dry_cg</a></code>, makes the CG
-and inertia vary during the burn. Needs the motor's length.</li>
+Station of the motor's front end [m]. With <code><a href="#Rocket.dry_cg">dry_cg</a></code>, the CG moves as
+propellant burns (needs the motor's length).</li>
 <li><strong>parachute</strong> (Parachute, optional):
 Deployed at apogee if given.</li>
 <li><strong>name</strong> (str):
@@ -523,8 +433,8 @@ Label for printouts.</li>
 <h6 id="raises">Raises</h6>
 
 <ul>
-<li><strong>ValueError</strong>: If the dry mass is not positive, the inertia tensor is invalid, or
-the optional data are inconsistent.</li>
+<li><strong>ValueError</strong>: If the dry mass is not positive, the inertia tensor is invalid, or the
+optional data are inconsistent.</li>
 </ul>
 </div>
 
@@ -539,28 +449,23 @@ the optional data are inconsistent.</li>
 
     </div>
     <a class="headerlink" href="#Rocket.__init__"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Rocket.__init__-88"><a href="#Rocket.__init__-88"><span class="linenos"> 88</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dry_mass</span><span class="p">,</span> <span class="n">inertia</span><span class="p">,</span> <span class="n">motor</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drag_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span id="Rocket.__init__-89"><a href="#Rocket.__init__-89"><span class="linenos"> 89</span></a>                 <span class="n">dry_cg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">motor_station</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parachute</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"rocket"</span><span class="p">):</span>
-</span><span id="Rocket.__init__-90"><a href="#Rocket.__init__-90"><span class="linenos"> 90</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">dry_mass</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span id="Rocket.__init__-91"><a href="#Rocket.__init__-91"><span class="linenos"> 91</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Dry mass must be positive, got </span><span class="si">{</span><span class="n">dry_mass</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="Rocket.__init__-92"><a href="#Rocket.__init__-92"><span class="linenos"> 92</span></a>        <span class="k">if</span> <span class="n">geometry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">drag_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket.__init__-93"><a href="#Rocket.__init__-93"><span class="linenos"> 93</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a rocket with geometry also needs a drag_model"</span><span class="p">)</span>
-</span><span id="Rocket.__init__-94"><a href="#Rocket.__init__-94"><span class="linenos"> 94</span></a>        <span class="k">if</span> <span class="n">geometry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket.__init__-95"><a href="#Rocket.__init__-95"><span class="linenos"> 95</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a rocket with geometry also needs dry_cg (for the moment arm)"</span><span class="p">)</span>
-</span><span id="Rocket.__init__-96"><a href="#Rocket.__init__-96"><span class="linenos"> 96</span></a>        <span class="k">if</span> <span class="n">motor_station</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket.__init__-97"><a href="#Rocket.__init__-97"><span class="linenos"> 97</span></a>            <span class="k">if</span> <span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket.__init__-98"><a href="#Rocket.__init__-98"><span class="linenos"> 98</span></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"motor_station needs dry_cg as well"</span><span class="p">)</span>
-</span><span id="Rocket.__init__-99"><a href="#Rocket.__init__-99"><span class="linenos"> 99</span></a>            <span class="k">if</span> <span class="n">motor</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">motor</span><span class="o">.</span><span class="n">diameter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket.__init__-100"><a href="#Rocket.__init__-100"><span class="linenos">100</span></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"motor_station needs the motor's length and diameter"</span><span class="p">)</span>
-</span><span id="Rocket.__init__-101"><a href="#Rocket.__init__-101"><span class="linenos">101</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dry_mass</span><span class="p">)</span>
-</span><span id="Rocket.__init__-102"><a href="#Rocket.__init__-102"><span class="linenos">102</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">inertia</span> <span class="o">=</span> <span class="n">validate_inertia</span><span class="p">(</span><span class="n">inertia</span><span class="p">)</span>
-</span><span id="Rocket.__init__-103"><a href="#Rocket.__init__-103"><span class="linenos">103</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor</span> <span class="o">=</span> <span class="n">motor</span>
-</span><span id="Rocket.__init__-104"><a href="#Rocket.__init__-104"><span class="linenos">104</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">geometry</span>
-</span><span id="Rocket.__init__-105"><a href="#Rocket.__init__-105"><span class="linenos">105</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">drag_model</span> <span class="o">=</span> <span class="n">drag_model</span>
-</span><span id="Rocket.__init__-106"><a href="#Rocket.__init__-106"><span class="linenos">106</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">=</span> <span class="n">dry_cg</span>
-</span><span id="Rocket.__init__-107"><a href="#Rocket.__init__-107"><span class="linenos">107</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">=</span> <span class="n">motor_station</span>
-</span><span id="Rocket.__init__-108"><a href="#Rocket.__init__-108"><span class="linenos">108</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">parachute</span> <span class="o">=</span> <span class="n">parachute</span>
-</span><span id="Rocket.__init__-109"><a href="#Rocket.__init__-109"><span class="linenos">109</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Rocket.__init__-73"><a href="#Rocket.__init__-73"><span class="linenos">73</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dry_mass</span><span class="p">,</span> <span class="n">inertia</span><span class="p">,</span> <span class="n">motor</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drag_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="Rocket.__init__-74"><a href="#Rocket.__init__-74"><span class="linenos">74</span></a>                 <span class="n">dry_cg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">motor_station</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parachute</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"rocket"</span><span class="p">):</span>
+</span><span id="Rocket.__init__-75"><a href="#Rocket.__init__-75"><span class="linenos">75</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">dry_mass</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span id="Rocket.__init__-76"><a href="#Rocket.__init__-76"><span class="linenos">76</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Dry mass must be positive, got </span><span class="si">{</span><span class="n">dry_mass</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="Rocket.__init__-77"><a href="#Rocket.__init__-77"><span class="linenos">77</span></a>        <span class="k">if</span> <span class="n">geometry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">drag_model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+</span><span id="Rocket.__init__-78"><a href="#Rocket.__init__-78"><span class="linenos">78</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a rocket with geometry also needs a drag_model and dry_cg"</span><span class="p">)</span>
+</span><span id="Rocket.__init__-79"><a href="#Rocket.__init__-79"><span class="linenos">79</span></a>        <span class="k">if</span> <span class="n">motor_station</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">dry_cg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">motor</span><span class="o">.</span><span class="n">length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+</span><span id="Rocket.__init__-80"><a href="#Rocket.__init__-80"><span class="linenos">80</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"motor_station needs dry_cg and the motor's length"</span><span class="p">)</span>
+</span><span id="Rocket.__init__-81"><a href="#Rocket.__init__-81"><span class="linenos">81</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dry_mass</span><span class="p">)</span>
+</span><span id="Rocket.__init__-82"><a href="#Rocket.__init__-82"><span class="linenos">82</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">inertia</span> <span class="o">=</span> <span class="n">validate_inertia</span><span class="p">(</span><span class="n">inertia</span><span class="p">)</span>
+</span><span id="Rocket.__init__-83"><a href="#Rocket.__init__-83"><span class="linenos">83</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor</span> <span class="o">=</span> <span class="n">motor</span>
+</span><span id="Rocket.__init__-84"><a href="#Rocket.__init__-84"><span class="linenos">84</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">geometry</span>
+</span><span id="Rocket.__init__-85"><a href="#Rocket.__init__-85"><span class="linenos">85</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">drag_model</span> <span class="o">=</span> <span class="n">drag_model</span>
+</span><span id="Rocket.__init__-86"><a href="#Rocket.__init__-86"><span class="linenos">86</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">=</span> <span class="n">dry_cg</span>
+</span><span id="Rocket.__init__-87"><a href="#Rocket.__init__-87"><span class="linenos">87</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">=</span> <span class="n">motor_station</span>
+</span><span id="Rocket.__init__-88"><a href="#Rocket.__init__-88"><span class="linenos">88</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">parachute</span> <span class="o">=</span> <span class="n">parachute</span>
+</span><span id="Rocket.__init__-89"><a href="#Rocket.__init__-89"><span class="linenos">89</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
 </span></pre></div>
 
 
@@ -677,9 +582,9 @@ the optional data are inconsistent.</li>
 
     </div>
     <a class="headerlink" href="#Rocket.mass"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Rocket.mass-111"><a href="#Rocket.mass-111"><span class="linenos">111</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span><span id="Rocket.mass-112"><a href="#Rocket.mass-112"><span class="linenos">112</span></a><span class="w">        </span><span class="sd">"""Total mass at time t after ignition [kg]."""</span>
-</span><span id="Rocket.mass-113"><a href="#Rocket.mass-113"><span class="linenos">113</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Rocket.mass-91"><a href="#Rocket.mass-91"><span class="linenos">91</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+</span><span id="Rocket.mass-92"><a href="#Rocket.mass-92"><span class="linenos">92</span></a><span class="w">        </span><span class="sd">"""Total mass at time t after ignition [kg]."""</span>
+</span><span id="Rocket.mass-93"><a href="#Rocket.mass-93"><span class="linenos">93</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -699,61 +604,17 @@ the optional data are inconsistent.</li>
 
     </div>
     <a class="headerlink" href="#Rocket.cg"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Rocket.cg-115"><a href="#Rocket.cg-115"><span class="linenos">115</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span><span id="Rocket.cg-116"><a href="#Rocket.cg-116"><span class="linenos">116</span></a><span class="w">        </span><span class="sd">"""Station of the CG at time t [m] (the dry CG if the motor position is unknown)."""</span>
-</span><span id="Rocket.cg-117"><a href="#Rocket.cg-117"><span class="linenos">117</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket.cg-118"><a href="#Rocket.cg-118"><span class="linenos">118</span></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span>
-</span><span id="Rocket.cg-119"><a href="#Rocket.cg-119"><span class="linenos">119</span></a>        <span class="n">x_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">length</span>
-</span><span id="Rocket.cg-120"><a href="#Rocket.cg-120"><span class="linenos">120</span></a>        <span class="n">m_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="Rocket.cg-121"><a href="#Rocket.cg-121"><span class="linenos">121</span></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">+</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">x_motor</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="n">m_motor</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Rocket.cg-95"><a href="#Rocket.cg-95"><span class="linenos"> 95</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+</span><span id="Rocket.cg-96"><a href="#Rocket.cg-96"><span class="linenos"> 96</span></a><span class="w">        </span><span class="sd">"""Station of the CG at time t [m]: mass-weighted average of dry rocket and motor."""</span>
+</span><span id="Rocket.cg-97"><a href="#Rocket.cg-97"><span class="linenos"> 97</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="Rocket.cg-98"><a href="#Rocket.cg-98"><span class="linenos"> 98</span></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span>
+</span><span id="Rocket.cg-99"><a href="#Rocket.cg-99"><span class="linenos"> 99</span></a>        <span class="n">x_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">length</span>    <span class="c1"># middle of the motor</span>
+</span><span id="Rocket.cg-100"><a href="#Rocket.cg-100"><span class="linenos">100</span></a>        <span class="n">m_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</span><span id="Rocket.cg-101"><a href="#Rocket.cg-101"><span class="linenos">101</span></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">+</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">x_motor</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">+</span> <span class="n">m_motor</span><span class="p">)</span>
 </span></pre></div>
 
 
-            <div class="docstring"><p>Station of the CG at time t [m] (the dry CG if the motor position is unknown).</p>
-</div>
-
-
-                            </div>
-                            <div id="Rocket.inertia_at" class="classattr">
-                                        <input id="Rocket.inertia_at-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
-<div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">inertia_at</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">t</span></span><span class="return-annotation">):</span></span>
-
-                <label class="view-source-button" for="Rocket.inertia_at-view-source"><span>View Source</span></label>
-
-    </div>
-    <a class="headerlink" href="#Rocket.inertia_at"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Rocket.inertia_at-123"><a href="#Rocket.inertia_at-123"><span class="linenos">123</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">inertia_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span><span id="Rocket.inertia_at-124"><a href="#Rocket.inertia_at-124"><span class="linenos">124</span></a><span class="w">        </span><span class="sd">"""Inertia tensor about the current CG, body axes [kg m^2].</span>
-</span><span id="Rocket.inertia_at-125"><a href="#Rocket.inertia_at-125"><span class="linenos">125</span></a>
-</span><span id="Rocket.inertia_at-126"><a href="#Rocket.inertia_at-126"><span class="linenos">126</span></a><span class="sd">        Constant (the dry value) unless ``dry_cg`` and ``motor_station`` were given.</span>
-</span><span id="Rocket.inertia_at-127"><a href="#Rocket.inertia_at-127"><span class="linenos">127</span></a><span class="sd">        """</span>
-</span><span id="Rocket.inertia_at-128"><a href="#Rocket.inertia_at-128"><span class="linenos">128</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="Rocket.inertia_at-129"><a href="#Rocket.inertia_at-129"><span class="linenos">129</span></a>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inertia</span>
-</span><span id="Rocket.inertia_at-130"><a href="#Rocket.inertia_at-130"><span class="linenos">130</span></a>        <span class="n">m_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="Rocket.inertia_at-131"><a href="#Rocket.inertia_at-131"><span class="linenos">131</span></a>        <span class="n">r</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">diameter</span>
-</span><span id="Rocket.inertia_at-132"><a href="#Rocket.inertia_at-132"><span class="linenos">132</span></a>        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">length</span>
-</span><span id="Rocket.inertia_at-133"><a href="#Rocket.inertia_at-133"><span class="linenos">133</span></a>        <span class="n">x_motor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor_station</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">L</span>
-</span><span id="Rocket.inertia_at-134"><a href="#Rocket.inertia_at-134"><span class="linenos">134</span></a>        <span class="n">x_cg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cg</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span><span id="Rocket.inertia_at-135"><a href="#Rocket.inertia_at-135"><span class="linenos">135</span></a>        <span class="c1"># Uniform solid cylinder for the motor, about its own CG.</span>
-</span><span id="Rocket.inertia_at-136"><a href="#Rocket.inertia_at-136"><span class="linenos">136</span></a>        <span class="n">J_motor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="Rocket.inertia_at-137"><a href="#Rocket.inertia_at-137"><span class="linenos">137</span></a>                           <span class="n">m_motor</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">12.0</span><span class="p">,</span>
-</span><span id="Rocket.inertia_at-138"><a href="#Rocket.inertia_at-138"><span class="linenos">138</span></a>                           <span class="n">m_motor</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">L</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">12.0</span><span class="p">])</span>
-</span><span id="Rocket.inertia_at-139"><a href="#Rocket.inertia_at-139"><span class="linenos">139</span></a>        <span class="c1"># Parallel-axis theorem for an offset d along body x: adds m d^2 to the</span>
-</span><span id="Rocket.inertia_at-140"><a href="#Rocket.inertia_at-140"><span class="linenos">140</span></a>        <span class="c1"># two transverse moments and nothing to the axial one.</span>
-</span><span id="Rocket.inertia_at-141"><a href="#Rocket.inertia_at-141"><span class="linenos">141</span></a>        <span class="n">shift</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
-</span><span id="Rocket.inertia_at-142"><a href="#Rocket.inertia_at-142"><span class="linenos">142</span></a>        <span class="n">d_dry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_cg</span> <span class="o">-</span> <span class="n">x_cg</span>
-</span><span id="Rocket.inertia_at-143"><a href="#Rocket.inertia_at-143"><span class="linenos">143</span></a>        <span class="n">d_motor</span> <span class="o">=</span> <span class="n">x_motor</span> <span class="o">-</span> <span class="n">x_cg</span>
-</span><span id="Rocket.inertia_at-144"><a href="#Rocket.inertia_at-144"><span class="linenos">144</span></a>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inertia</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dry_mass</span> <span class="o">*</span> <span class="n">d_dry</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">shift</span>
-</span><span id="Rocket.inertia_at-145"><a href="#Rocket.inertia_at-145"><span class="linenos">145</span></a>                <span class="o">+</span> <span class="n">J_motor</span> <span class="o">+</span> <span class="n">m_motor</span> <span class="o">*</span> <span class="n">d_motor</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">shift</span><span class="p">)</span>
-</span></pre></div>
-
-
-            <div class="docstring"><p>Inertia tensor about the current CG, body axes [kg m^2].</p>
-
-<p>Constant (the dry value) unless <code><a href="#Rocket.dry_cg">dry_cg</a></code> and <code><a href="#Rocket.motor_station">motor_station</a></code> were given.</p>
+            <div class="docstring"><p>Station of the CG at time t [m]: mass-weighted average of dry rocket and motor.</p>
 </div>
 
 

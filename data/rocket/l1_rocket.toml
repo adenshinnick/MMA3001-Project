@@ -9,11 +9,9 @@ name = "L1 ROCKET"
 [body]
 diameter = 0.060              # [m]
 length = 0.77                 # nose tip to base [m]
-surface_roughness = 60e-6     # OpenRocket "regular paint" finish [m]
 
 [nose]
-shape = "ellipsoid"           # ellipsoid, conical or ogive
-length = 0.17                 # [m]
+length = 0.17                 # ellipsoid nose cone [m]
 
 [fins]
 count = 4
@@ -21,27 +19,26 @@ root_chord = 0.117            # [m]
 tip_chord = 0.030             # [m]
 span = 0.045                  # root to tip [m]
 sweep_length = 0.08713        # root leading edge to tip leading edge, along the axis [m]
-thickness = 0.003             # square cross-section [m]
 station = 0.653               # root leading edge (fins flush with the base: 0.77 - 0.117) [m]
-
-[launch_lugs]
-count = 2
-outer_radius = 0.005          # [m]
-length = 0.03                 # [m]
 
 [mass]
 # Dry = without the motor. OpenRocket gives 882.724 g with CG at 0.39762 m
 # at ignition; removing the 207 g motor (CG at its middle, 0.6684 m) leaves:
 dry_mass = 0.675724           # [kg]
 dry_cg = 0.31464              # [m]
-# Not in the OpenRocket export: estimated from the parts list by
-# scripts/estimate_inertia.py (parts total within 0.1 % of OpenRocket's mass).
-inertia_axial = 3.158e-4      # roll, about the long axis [kg m^2]
-inertia_transverse = 3.738e-2 # pitch and yaw, about the dry CG [kg m^2]
+# Not in the OpenRocket export. Estimated by treating the dry rocket as a
+# uniform cylinder: pitch I = m L^2 / 12, roll I = m r^2 / 2.
+inertia_axial = 3.04e-4       # roll [kg m^2]
+inertia_transverse = 3.34e-2  # pitch and yaw [kg m^2]
 
 [motor]
 file = "../motors/AeroTech_H182R.eng"   # relative to this file
 station = 0.5668              # front end of the motor; aft end flush with the base [m]
+
+[drag]
+# C_D = cd0 + k M^2, fitted to OpenRocket's coast data by scripts/fit_drag.py.
+cd0 = 0.4704
+k = 0.1623
 
 [parachute]
 diameter = 1.2                # [m]

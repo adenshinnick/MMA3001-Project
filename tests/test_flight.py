@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from rocket6dof.atmosphere import G0, dynamic_viscosity, isa
+from rocket6dof.atmosphere import G0, isa
 from rocket6dof.config import load_rocket
 from rocket6dof.dynamics import OMEGA, make_rhs, make_state
 from rocket6dof.motor import Motor
@@ -56,8 +56,8 @@ def test_drag_is_wired_into_the_equations():
     f = make_rhs(ROCKET)
     z, vz, t = 500.0, 150.0, 5.0
     x = make_state([0.0, 0.0, z], [0.0, 0.0, vz], VERTICAL, [0.0, 0.0, 0.0])
-    T, _, rho, a = isa(z)
-    cd = ROCKET.drag_model(vz / a, rho * vz * ROCKET.geometry.length / dynamic_viscosity(T))
+    _, _, rho, a = isa(z)
+    cd = ROCKET.drag_model(vz / a)
     drag = 0.5 * rho * vz**2 * cd * ROCKET.geometry.reference_area
     assert f(t, x)[5] == pytest.approx(-G0 - drag / ROCKET.mass(t), rel=1e-12)
 
@@ -69,14 +69,6 @@ def test_rocket_weathercocks_into_the_wind():
     result = simulate(ROCKET, VERTICAL, h=0.02, h_descent=0.1, wind=Wind(5.0, 270.0))
     assert result["events"]["apogee"]["position"][0] < -10.0
     assert result["events"]["landing"]["position"][0] > 100.0
-
-
-def test_large_step_still_locates_apogee_accurately():
-    """Hermite event location: a 0.1 s step agrees with a 0.005 s step to 1 cm."""
-    coarse = simulate(ROCKET, VERTICAL, h=0.1, stop_at_apogee=True)["events"]["apogee"]
-    fine = simulate(ROCKET, VERTICAL, h=0.005, stop_at_apogee=True)["events"]["apogee"]
-    assert coarse["position"][2] == pytest.approx(fine["position"][2], abs=0.01)
-    assert coarse["t"] == pytest.approx(fine["t"], abs=1e-3)
 
 
 def test_stops_when_leaving_the_aerodynamic_model():
@@ -105,7 +97,5 @@ def test_rejects_bad_rail_elevation(bad):
 
 
 def test_rejects_unknown_options():
-    with pytest.raises(ValueError):
-        simulate(ROCKET, VERTICAL, method="midpoint")
     with pytest.raises(ValueError):
         simulate(ROCKET, VERTICAL, align="sometimes")
