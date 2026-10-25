@@ -74,3 +74,8 @@ def test_constant_spin_matches_exact_solution():
     np.testing.assert_allclose(q[-1], expected, atol=1e-9)
     # RK4 does not keep the length at exactly 1, but the drift should be tiny.
     assert np.linalg.norm(q[-1]) == pytest.approx(1.0, abs=1e-9)
+
+def test_cross3_matches_numpy_cross():
+    from rocket6dof.quaternions import cross3
+    a, b = np.array([0.3, -1.2, 2.5]), np.array([-0.7, 0.4, 1.1])
+    np.testing.assert_allclose(cross3(a, b), np.cross(a, b), atol=1e-15)

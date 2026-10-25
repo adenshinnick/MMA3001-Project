@@ -1,7 +1,7 @@
 """ Solid rocket motor model: thrust and mass as functions of time.
 
-Thrust comes form a measured thrust curve, linearly interpolated between
-data points. Mass falls in proportion to the impules delivered so far
+Thrust comes from a measured thrust curve, linearly interpolated between
+data points. Mass falls in proportion to the impulse delivered so far
 """
 import numpy as np
 
@@ -22,13 +22,18 @@ class Motor:
         Propellant mass at ignition [kg].
     total_mass : float
         Motor mass at ignition, casing plus propellant [kg].
+    diameter : float, optional
+        Motor diameter [m]. Needed only for the motor's moment of inertia.
+    length : float, optional
+        Motor length [m]. Needed for the motor's CG and moment of inertia.
 
     Raises
     ------
     ValueError
         If the thrust curve or masses are invalid.
     """
-    def __init__(self, name, times, thrusts, propellant_mass, total_mass):
+    def __init__(self, name, times, thrusts, propellant_mass, total_mass,
+                 diameter=None, length=None):
         times = np.asarray(times, dtype = float)
         thrusts = np.asarray(thrusts, dtype=float)
 
@@ -45,7 +50,7 @@ class Motor:
         if not 0.0 <propellant_mass < total_mass:
             raise ValueError("need 0 < propellant mass < total mass")
 
-        #the curve implicilty stats from rest at ignition
+        #the curve implicitly starts from rest at ignition
         if times[0] > 0.0:
             times = np.insert(times,0,0.0)
             thrusts = np.insert(thrusts,0,0.0)
@@ -56,6 +61,8 @@ class Motor:
         self.propellant_mass = propellant_mass
         self.total_mass = total_mass
         self.burn_time = times[-1]
+        self.diameter = diameter
+        self.length = length
 
         #Impulse delivered by the end of each data point, by the trapezoidal rule
         #This is exact when assuming thrust is linear between points
@@ -125,8 +132,10 @@ def load_eng(path):
         raise ValueError(f"{path}: missing or incomplete header line. ")
 
     name = header[0]
+    diameter = float(header[1]) / 1000.0  # the header gives millimetres
+    length = float(header[2]) / 1000.0
     propellant_mass= float(header[4])
     total_mass = float(header[5])
-    return Motor(name, times, thrusts, propellant_mass, total_mass)
+    return Motor(name, times, thrusts, propellant_mass, total_mass, diameter, length)
 
     

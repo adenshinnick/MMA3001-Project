@@ -1,5 +1,5 @@
 """International Standard Atmosphere (ISA) Model
-Gives air temperature, pressure, density and speed of sound as funcitons of altitude, from just below sea level to 20km. 
+Gives air temperature, pressure, density and speed of sound as functions of altitude, from just below sea level to 20km. 
 The simulator uses the density for aerodynamic forces and the speed of sound for the Mach number. 
 """
 
@@ -25,10 +25,10 @@ def isa(h):
     """Return ISA air properties at a given altitude
     Parameters
     ----------
-    H : float
-        Altitude above mean sea level (m). Must be between H_min and H_max. 
+    h : float
+        Altitude above mean sea level [m]. Must be between H_MIN and H_MAX. 
         Treated as geopotential altitude, below 11km this differs from geometric 
-        altitude by under 20m, which changes density by abou 0.2%.
+        altitude by under 20m, which changes density by about 0.2%.
     
     Returns
     -------
@@ -68,3 +68,24 @@ def isa(h):
 
     return T, p, rho, a
 
+# Sutherland's law constants for air
+MU_REF = 1.458e-6      # [kg/(m s K^0.5)]
+SUTHERLAND_T = 110.4   # Sutherland temperature [K]
+
+
+def dynamic_viscosity(T):
+    """Dynamic viscosity of air from Sutherland's law [Pa s].
+
+    mu = MU_REF * T^1.5 / (T + SUTHERLAND_T). Gives 1.789e-5 Pa s at 288.15 K.
+    Used for the Reynolds number in the skin-friction drag.
+
+    Parameters
+    ----------
+    T : float
+        Air temperature [K], > 0.
+
+    Returns
+    -------
+    float
+    """
+    return MU_REF * T**1.5 / (T + SUTHERLAND_T)
