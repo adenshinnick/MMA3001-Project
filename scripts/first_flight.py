@@ -1,6 +1,6 @@
 """First flight: simulate a demo rocket and plot its trajectory. 
 
-There is not aerodynamic drag yet, so the apogee is far higher than a real flight. 
+There is no aerodynamic drag yet, so the apogee is far higher than a real flight. 
 This checks the simulator from end to end, not the rocket
 """
 
@@ -14,7 +14,7 @@ from rocket6dof.quaternions import quat_from_axis_angle
 from rocket6dof.rocket import Rocket
 from rocket6dof.simulation import simulate
 
-#A made up thrust curve shapeed like a small H class motor(not real data)
+# A made-up thrust curve shaped like a small H-class motor (not real data)
 motor = Motor(
     "DEMO",
     [0.05, 0.2, 1.0, 1.6, 1.8],
@@ -57,4 +57,4 @@ fig.tight_layout()
 out_dir = Path("reports/figures")
 out_dir.mkdir(parents=True, exist_ok=True)
 fig.savefig(out_dir / "first_flight.png", dpi=150)
-plt.show()
+plt.show()

@@ -1,6 +1,7 @@
 """Time integration of ordinary differential equations dx/dt = f(t, x).
 
-The classical fourth-order Runge-Kutta method (RK4), fixed step.
+The classical fourth-order Runge-Kutta method (RK4), fixed step. Explicit
+Euler is included as the baseline for the integrator comparison.
 """
 import numpy as np
 
@@ -28,6 +29,15 @@ def rk4_step(f,t,x,h):
     k3 = f(t+h/2, x+h/2*k2) #slope at midpoint using k2
     k4 = f(t+h, x+h*k3) #slope at end, using k3
     return x+h/6 * (k1 +2*k2 + 2*k3 + k4)
+
+def euler_step(f, t, x, h):
+    """Advance the state by one explicit Euler step (first order).
+
+    Uses only the slope at the start of the step: x + h f(t, x). Same
+    arguments and return value as ``rk4_step``.
+    """
+    return x + h * f(t, x)
+
 
 def integrate_rk4(f,x0,t0,t_end,h):
     """Integrate dx/dt = f(t, x) from t0 to t_end with fixed-step RK4.

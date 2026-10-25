@@ -118,9 +118,10 @@ def fin_normal_force_slope(geom, mach):
     """
     _check_mach(mach)
     s, a, b = geom.span, geom.root_chord, geom.tip_chord
-    fin_area = 0.5 * (a + b) * s
+    fin_area = 0.5 * (a + b) * s                                   # one trapezoidal fin
+    # Cosine of the sweep angle of the line joining the mid-points of the chords.
     cos_midchord = s / sqrt(s**2 + (geom.sweep + 0.5 * b - 0.5 * a) ** 2)
-    beta = sqrt(1.0 - mach**2)
+    beta = sqrt(1.0 - mach**2)        # compressibility correction: grows the force near Mach 1
     one_fin = (2.0 * pi * s**2 / geom.reference_area) / (
         1.0 + sqrt(1.0 + (beta * s**2 / (fin_area * cos_midchord)) ** 2))
     interference = 1.0 + geom.radius / (s + geom.radius)
@@ -133,7 +134,7 @@ def normal_force_slope_and_cp(geom, mach):
     The CP is the C_N_alpha-weighted average of the nose and fin CPs.
     """
     cn_fins = fin_normal_force_slope(geom, mach)
-    cn_alpha = 2.0 + cn_fins
+    cn_alpha = 2.0 + cn_fins          # Barrowman: any nose contributes 2 per radian
     x_cp = (2.0 * geom.nose_cp + cn_fins * geom.fin_cp) / cn_alpha
     return cn_alpha, x_cp
 
@@ -158,8 +159,10 @@ class ConstantDrag:
 class MachDrag:
     """Drag coefficient rising with Mach number: C_D = cd0 + k M^2.
 
-    Base drag and the stagnation pressure on the fin edges both grow roughly
-    with M^2 at subsonic speeds, so two numbers describe C_D up to Mach 0.8.
+    cd0 is the drag coefficient at low speed, and k M^2 is the rise in drag
+    as the air starts to compress near the speed of sound. The two numbers
+    are fitted to OpenRocket's flight data by ``scripts/fit_drag.py``
+    (linear regression of C_D against M^2). Valid up to Mach 0.8.
     """
 
     def __init__(self, cd0, k):
@@ -204,26 +207,31 @@ def aerodynamic_loads(geom, drag_model, v_air, rho, sound_speed, x_cg, omega):
     which gives the pitch damping term.
     """
     speed = sqrt(v_air[0] ** 2 + v_air[1] ** 2 + v_air[2] ** 2)
-    if speed < 1e-9:
+    if speed < 1e-9:                  # no airflow, so no aerodynamic force
         return np.zeros(3), np.zeros(3), 0.0
 
     mach = speed / sound_speed
     q_area = 0.5 * rho * speed**2 * geom.reference_area     # dynamic pressure x area [N]
-    force = -q_area * drag_model(mach) * v_air / speed
+    force = -q_area * drag_model(mach) * v_air / speed      # drag, opposite the airflow
     moment = np.zeros(3)
 
     cn_fins = fin_normal_force_slope(geom, mach)
+    # The body x axis is the rocket's axis, so the y and z parts of v_air are
+    # the air flowing across the rocket. Without them there is no normal force.
     cross = sqrt(v_air[1] ** 2 + v_air[2] ** 2)              # cross-flow speed [m/s]
     if cross > 1e-12:
         alpha = atan2(cross, v_air[0])                       # angle of attack [rad]
         cn_alpha = 2.0 + cn_fins
         x_cp = (2.0 * geom.nose_cp + cn_fins * geom.fin_cp) / cn_alpha
-        normal = q_area * cn_alpha * sin(alpha)
+        normal = q_area * cn_alpha * sin(alpha)              # size of the normal force [N]
+        # The normal force pushes against the cross-flow, perpendicular to the axis.
         f_normal = np.array([0.0, -normal * v_air[1] / cross, -normal * v_air[2] / cross])
         force = force + f_normal
         moment = cross3(np.array([x_cg - x_cp, 0.0, 0.0]), f_normal)   # arm from CG to CP
 
-    # Pitch and yaw damping from the nose and fins.
+    # Pitch and yaw damping from the nose and fins: a rotating rocket moves
+    # each part sideways through the air, which creates a force opposing the
+    # rotation. Parts further from the CG contribute more (distance squared).
     damping = (q_area / speed) * (2.0 * (geom.nose_cp - x_cg) ** 2
                                   + cn_fins * (geom.fin_cp - x_cg) ** 2)
     moment[1] -= damping * omega[1]

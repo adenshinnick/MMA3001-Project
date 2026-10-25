@@ -1,13 +1,13 @@
-""" rigid body rotational dynamics
+"""Rigid-body rotational dynamics.
 
-Eulers equation in the body frame:
+Euler's equation in the body frame:
 
     J @ omega_dot = M - omega x (J @ omega)
     
     J is the inertia tensor about the centre of mass [kg m^2], omega the body angular
     velocity [rad/s] and M the applied moment about the centre of mass [N m], all in body axes.
     
-    Assumption: J is treated as constant at each instant. the effects of inertia changing 
+    Assumption: J is treated as constant at each instant. The effects of inertia changing 
     during the burn (the J-dot term and jet damping) are neglected
     """
 
@@ -40,6 +40,8 @@ def validate_inertia(J, tol=1e-9):
         principal moments break the triangle inequality
     """
     J = np.asarray(J, dtype=float)
+    # A real inertia tensor is 3x3, symmetric, has positive principal moments,
+    # and no principal moment can exceed the sum of the other two.
     if J.shape != (3,3):
         raise ValueError(f"Inertia tensor must be 3x3, got shape {J.shape}.")
     scale = np.max(np.abs(J))
@@ -71,6 +73,8 @@ def angular_acceleration(J, omega, moment):
     """
     omega = np.asarray(omega, dtype = float)
     L_body = J @ omega              #angular momentum, body axes
+    # omega x L is the gyroscopic term: a spinning body resists changes to
+    # its spin axis even with no applied moment.
     rhs = np.asarray(moment, dtype = float) - cross3(omega, L_body)
     return np.linalg.solve(J, rhs)  # solves J @ omega_dot = rhs
 

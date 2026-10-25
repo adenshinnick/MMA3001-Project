@@ -52,9 +52,12 @@ def load_rocket(path, constant_cd=None):
         If the TOML file or the motor file does not exist.
     """
     path = Path(path)
+    # Read the whole file into a nested dictionary: table["fins"]["span"], etc.
     with open(path, "rb") as file:            # tomllib needs the file opened in binary
         table = tomllib.load(file)
 
+    # Each _get call checks that the field exists and has the right type;
+    # Geometry, Rocket and Parachute then check the values themselves.
     geometry = Geometry(
         diameter=_get(table, "body", "diameter"),
         length=_get(table, "body", "length"),
@@ -67,6 +70,7 @@ def load_rocket(path, constant_cd=None):
         fin_station=_get(table, "fins", "station"),
     )
 
+    # The motor file path is relative to the rocket file's folder.
     motor = load_eng(path.parent / _get(table, "motor", "file", str))
     motor_station = _get(table, "motor", "station")
     if not 0.0 <= motor_station <= geometry.length - motor.length + 1e-9:
@@ -75,6 +79,7 @@ def load_rocket(path, constant_cd=None):
     dry_cg = _get(table, "mass", "dry_cg")
     if not 0.0 < dry_cg < geometry.length:
         raise ValueError(f"[mass] dry_cg = {dry_cg} must lie inside the body (0 to {geometry.length} m)")
+    # The rocket is symmetric about its axis, so pitch and yaw inertia are equal.
     I_t = _get(table, "mass", "inertia_transverse")
     inertia = np.diag([_get(table, "mass", "inertia_axial"), I_t, I_t])
 
@@ -83,7 +88,7 @@ def load_rocket(path, constant_cd=None):
     else:
         drag_model = ConstantDrag(constant_cd)
 
-    parachute = None
+    parachute = None                         # the parachute section is optional
     if "parachute" in table:
         parachute = Parachute(_get(table, "parachute", "diameter"),
                               _get(table, "parachute", "drag_coefficient"))

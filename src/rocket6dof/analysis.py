@@ -4,7 +4,11 @@ sensitivity runs and timing."""
 import time
 
 import numpy as np
-from rocket6dof.dynamics import GRAVITY, make_rhs, make_state
+from scipy.integrate import solve_ivp
+
+from rocket6dof.dynamics import GRAVITY, POS, QUAT, VEL, make_rhs, make_state
+from rocket6dof.integrators import euler_step, rk4_step
+from rocket6dof.quaternions import quat_normalise
 from rocket6dof.motor import Motor
 from rocket6dof.quaternions import cross3
 from rocket6dof.rocket import Rocket
@@ -59,6 +63,91 @@ def apogee_fixed_step(rocket, h, align="thrust_points", elevation_deg=90.0,
                       align=align, gravity=gravity, stop_at_apogee=True)
     runtime = time.perf_counter() - t0
     return float(result["events"]["apogee"]["position"][2]), result["n_rhs"], runtime
+
+
+def rail_exit_state(rocket, gravity=GRAVITY):
+    """Time and state at rail exit for a vertical launch, from a very fine RK4 run.
+
+    The integrator comparison starts every method from this same state, so it
+    compares only the free flight, where the methods differ.
+    """
+    result = simulate(rocket, launch_attitude(90.0), h=0.0005, gravity=gravity,
+                      stop_at_apogee=True)
+    t_exit = result["events"]["rail_exit"]["t"]
+    k = int(np.argmin(abs(result["t"] - t_exit)))
+    return float(result["t"][k]), result["x"][k].copy()
+
+
+def apogee_by_method(rocket, method, setting, t0, x0, gravity=GRAVITY):
+    """Apogee from rail exit with one integrator, for the integrator comparison.
+
+    Every method restarts at the thrust-curve points (the corners in the
+    thrust curve), so all three are compared fairly.
+
+    Parameters
+    ----------
+    rocket : Rocket
+    method : str
+        ``"euler"`` or ``"rk4"`` (fixed step; ``setting`` is the step h [s]),
+        or ``"rk45"`` (SciPy's adaptive solve_ivp; ``setting`` is the relative
+        tolerance, with absolute tolerance ``setting / 100``).
+    setting : float
+        Step size [s] or relative tolerance [-].
+    t0, x0 : float, numpy.ndarray
+        Start time [s] and state (from ``rail_exit_state``).
+    gravity : numpy.ndarray
+        Gravitational acceleration [m/s^2].
+
+    Returns
+    -------
+    apogee : float
+        Apogee altitude [m].
+    n_rhs : int
+        Right-hand-side calls.
+    runtime : float
+        Wall-clock time [s].
+    """
+    f_raw = make_rhs(rocket, gravity=gravity)
+    n_rhs = 0
+
+    def f(t, x):
+        nonlocal n_rhs
+        n_rhs += 1
+        return f_raw(t, x)
+
+    corners = [tk for tk in rocket.motor.times if tk > t0 + 1e-12]
+    start = time.perf_counter()
+    t, x = t0, np.array(x0, dtype=float)
+
+    if method == "rk45":
+        def falling(t, x):             # apogee: vertical velocity crosses zero
+            return x[5]
+        falling.terminal, falling.direction = True, -1
+        for t_end in corners + [t0 + 100.0]:
+            sol = solve_ivp(f, (t, t_end), x, method="RK45", rtol=setting,
+                            atol=setting / 100, events=falling)
+            if sol.t_events[0].size:
+                return float(sol.y_events[0][0][2]), n_rhs, time.perf_counter() - start
+            t, x = t_end, sol.y[:, -1].copy()
+            x[QUAT] = quat_normalise(x[QUAT])   # only possible between segments
+        raise RuntimeError("no apogee found")
+
+    step_fn = {"euler": euler_step, "rk4": rk4_step}[method]
+    h = setting
+    while True:
+        step = h
+        for tk in corners:
+            if t < tk < t + step:
+                step = tk - t          # end this step exactly on the corner
+                break
+        x_new = step_fn(f, t, x, step)
+        x_new[QUAT] = quat_normalise(x_new[QUAT])
+        if x[VEL][2] > 0.0 >= x_new[VEL][2]:
+            a = (x_new[VEL][2] - x[VEL][2]) / step       # constant acceleration in the step
+            tau = -x[VEL][2] / a
+            apogee = x[POS][2] + x[VEL][2] * tau + 0.5 * a * tau**2
+            return float(apogee), n_rhs, time.perf_counter() - start
+        t, x = t + step, x_new
 
 
 def observed_order(h, error):

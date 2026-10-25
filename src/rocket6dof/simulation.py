@@ -206,8 +206,9 @@ def simulate(rocket, q_launch, rail_length=1.0, h=0.01, t_max=600.0, *,
     status = "t_max reached"
     n_steps = 0
 
+    # Main loop: one RK4 step per pass, with checks for events after each step.
     while t < t_max:
-        f = {"rail": f_rail, "free": f_free, "descent": f_descent}[phase]
+        f = {"rail": f_rail, "free": f_free, "descent": f_descent}[phase]   # equations for this phase
         step = h_descent if phase == "descent" else h
         for t_kink in kinks:
             if t < t_kink < t + step:
@@ -216,7 +217,7 @@ def simulate(rocket, q_launch, rail_length=1.0, h=0.01, t_max=600.0, *,
         t_new = t + step
 
         x_new = rk4_step(f, t, x, step)
-        x_new[QUAT] = quat_normalise(x_new[QUAT])
+        x_new[QUAT] = quat_normalise(x_new[QUAT])   # keep the quaternion at length 1
         n_steps += 1
         a = (x_new[VEL] - x[VEL]) / step   # average acceleration over the step
 

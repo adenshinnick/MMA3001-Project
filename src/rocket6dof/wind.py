@@ -30,7 +30,7 @@ class Wind:
             raise ValueError(f"wind speed must be >= 0, got {speed}")
         self.speed = float(speed)
         self.direction_deg = float(direction_deg)
-        theta = radians(direction_deg)
+        theta = radians(direction_deg)       # compass angle, clockwise from north
         # Unit vector the wind blows TOWARDS (opposite to where it comes from).
         self.velocity = self.speed * np.array([-sin(theta), -cos(theta), 0.0])
 

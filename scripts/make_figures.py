@@ -22,8 +22,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from rocket6dof.aerodynamics import ConstantDrag, normal_force_slope_and_cp, stability_margin
-from rocket6dof.analysis import (FLOP_ESTIMATE, apogee_fixed_step, fly,
-                                 observed_order, time_cross_products, time_rhs, variant)
+from rocket6dof.analysis import (FLOP_ESTIMATE, apogee_by_method, apogee_fixed_step, fly,
+                                 observed_order, rail_exit_state, time_cross_products,
+                                 time_rhs, variant)
 from rocket6dof.atmosphere import isa
 from rocket6dof.benchmark import (G_OPENROCKET, infer_drag_coefficient, load_openrocket_csv,
                                   rms_difference)
@@ -240,11 +241,48 @@ def drag_models(rocket, data):
 
 
 # ---------------------------------------------------------------------------
-# 4. Sensitivity (one factor at a time)
+# 4. Integrator comparison: explicit Euler, RK4, SciPy RK45
+# ---------------------------------------------------------------------------
+
+TOLERANCE = 0.1   # apogee accuracy required [m]
+
+
+def integrators(rocket):
+    """Apogee error against cost for three integrators, all starting from the
+    same rail-exit state and restarting at the thrust-curve corners."""
+    print("4. Integrator comparison")
+    t0, x0 = rail_exit_state(rocket, G_OR)
+    ref = apogee_by_method(rocket, "rk4", 0.0005, t0, x0, G_OR)[0]
+    sweeps = {"euler": [0.01, 0.005, 0.0025, 0.00125, 0.000625, 0.0003125],
+              "rk4": [0.32, 0.16, 0.08, 0.04, 0.02, 0.01],
+              "rk45": [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8]}
+    out = {"reference_apogee": ref}
+    fig, ax = plt.subplots(figsize=(5.5, 3.6))
+    for method, colour, label in [("euler", C8, "Explicit Euler (baseline)"),
+                                  ("rk4", SIM, "RK4 (selected)"),
+                                  ("rk45", C4, "SciPy RK45 (adaptive)")]:
+        rows = []
+        for setting in sweeps[method]:
+            apogee, n_rhs, runtime = apogee_by_method(rocket, method, setting, t0, x0, G_OR)
+            rows.append({"setting": setting, "error": abs(apogee - ref), "n_rhs": n_rhs,
+                         "runtime": runtime})
+        out[method] = rows
+        ax.loglog([r["n_rhs"] for r in rows], [max(r["error"], 1e-9) for r in rows], "o-",
+                  color=colour, markersize=4, label=label)
+    ax.axhline(TOLERANCE, color="#52514e", linestyle=":", linewidth=1.0, label="0.1 m tolerance")
+    ax.set(xlabel="Right-hand-side calls (cost)", ylabel="|Apogee error| [m]",
+           title="Integrators: accuracy against cost")
+    ax.legend(fontsize=7)
+    save(fig, "integrators.png")
+    results["integrators"] = out
+
+
+# ---------------------------------------------------------------------------
+# 5. Sensitivity (one factor at a time)
 # ---------------------------------------------------------------------------
 
 def sensitivity(rocket):
-    print("4. Sensitivity")
+    print("5. Sensitivity")
     nominal = fly(rocket, {})
     cases = [("Drag coefficient", "cd_factor", 0.9, 1.1, "-10 % / +10 %"),
              ("Dry mass", "mass_factor", 0.95, 1.05, "-5 % / +5 %"),
@@ -278,14 +316,14 @@ def sensitivity(rocket):
 
 
 # ---------------------------------------------------------------------------
-# 5. Attitude in a crosswind
+# 6. Attitude in a crosswind
 # ---------------------------------------------------------------------------
 
 def attitude(rocket):
     """Tilt, angle of attack and flight path in a crosswind, from rail exit to
     apogee. In the vertical, still-air benchmark the rocket never rotates, so
     this is the case that shows the rotational half of the model working."""
-    print("5. Attitude in a crosswind")
+    print("6. Attitude in a crosswind")
     res = simulate(rocket, VERTICAL, h=H_SELECTED, gravity=G_OR,
                    wind=Wind(WIND_SPEED, WIND_FROM), stop_at_apogee=True)
     t, x = res["t"], res["x"]
@@ -330,7 +368,7 @@ def attitude(rocket):
 
 
 # ---------------------------------------------------------------------------
-# 6. Performance: profiling, FLOPs, before/after
+# 7. Performance: profiling, FLOPs, before/after
 # ---------------------------------------------------------------------------
 
 def profile_top(rocket, n=8):
@@ -346,7 +384,7 @@ def profile_top(rocket, n=8):
 
 
 def performance(rocket):
-    print("6. Performance")
+    print("7. Performance")
     out = {}
     out["profile"], out["profile_total_s"] = profile_top(rocket)
     out["rhs_us"] = 1e6 * time_rhs(rocket)
@@ -405,6 +443,16 @@ def write_markdown():
     lines += ["", "## Drag models", "", "| Model | Apogee [m] | vs OpenRocket |", "| --- | --- | --- |"]
     for k, r in results["drag_models"].items():
         lines.append(f"| {k} | {r['apogee']:.1f} | {r['error_pct']:+.2f} % |")
+    it = results["integrators"]
+    names = {"euler": ("Explicit Euler (baseline)", "h = {} s"), "rk4": ("RK4 (selected)", "h = {} s"),
+             "rk45": ("SciPy RK45", "rtol = {:g}")}
+    lines += ["", "## Integrator comparison (rail exit to apogee, vertical flight)", "",
+              f"Reference apogee {it['reference_apogee']:.4f} m (RK4, h = 0.0005 s)", "",
+              "| Method | Setting | Apogee error [m] | RHS calls | Run time [s] |", "| --- | --- | --- | --- | --- |"]
+    for method in ["euler", "rk4", "rk45"]:
+        for r in it[method]:
+            lines.append(f"| {names[method][0]} | {names[method][1].format(r['setting'])} | "
+                         f"{r['error']:.2e} | {r['n_rhs']} | {r['runtime']:.3f} |")
     s = results["sensitivity"]
     lines += ["", f"## Sensitivity (nominal apogee {s['nominal_apogee']:.1f} m)", "",
               "| Input | Range | Apogee change [m] | Landing distance [m] |", "| --- | --- | --- | --- |"]
@@ -448,6 +496,7 @@ def main():
     validation(rocket, data, events)
     convergence(rocket)
     drag_models(rocket, data)
+    integrators(rocket)
     sensitivity(rocket)
     attitude(rocket)
     performance(rocket)

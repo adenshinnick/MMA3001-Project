@@ -93,7 +93,7 @@ class Rocket:
 
     def cg(self, t):
         """Station of the CG at time t [m]: mass-weighted average of dry rocket and motor."""
-        if self.motor_station is None:
+        if self.motor_station is None:       # no motor position given: CG fixed
             return self.dry_cg
         x_motor = self.motor_station + 0.5 * self.motor.length    # middle of the motor
         m_motor = self.motor.mass(t)
