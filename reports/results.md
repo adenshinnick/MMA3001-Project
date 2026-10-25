@@ -42,6 +42,32 @@
 | Constant C_D = 0.4704 (baseline) | 1055.0 | +4.09 % |
 | C_D = cd0 + k M^2 (selected) | 1013.5 | -0.01 % |
 
+## Integrator comparison (rail exit to apogee, vertical flight)
+
+Reference apogee 1013.5168 m (RK4, h = 0.0005 s)
+
+| Method | Setting | Apogee error [m] | RHS calls | Run time [s] |
+| --- | --- | --- | --- | --- |
+| Explicit Euler (baseline) | h = 0.01 s | 2.67e+00 | 1262 | 0.090 |
+| Explicit Euler (baseline) | h = 0.005 s | 1.36e+00 | 2520 | 0.191 |
+| Explicit Euler (baseline) | h = 0.0025 s | 6.97e-01 | 5034 | 0.301 |
+| Explicit Euler (baseline) | h = 0.00125 s | 3.54e-01 | 10061 | 0.672 |
+| Explicit Euler (baseline) | h = 0.000625 s | 1.78e-01 | 20113 | 1.054 |
+| Explicit Euler (baseline) | h = 0.0003125 s | 8.93e-02 | 40220 | 2.292 |
+| RK4 (selected) | h = 0.32 s | 5.50e-03 | 188 | 0.010 |
+| RK4 (selected) | h = 0.16 s | 7.49e-04 | 340 | 0.025 |
+| RK4 (selected) | h = 0.08 s | 1.75e-04 | 652 | 0.045 |
+| RK4 (selected) | h = 0.04 s | 1.31e-04 | 1276 | 0.087 |
+| RK4 (selected) | h = 0.02 s | 1.00e-05 | 2532 | 0.160 |
+| RK4 (selected) | h = 0.01 s | 6.92e-07 | 5048 | 0.283 |
+| SciPy RK45 | rtol = 0.01 | 1.36e+01 | 118 | 0.011 |
+| SciPy RK45 | rtol = 0.001 | 1.68e+00 | 136 | 0.011 |
+| SciPy RK45 | rtol = 0.0001 | 9.41e-02 | 142 | 0.011 |
+| SciPy RK45 | rtol = 1e-05 | 1.16e-02 | 190 | 0.014 |
+| SciPy RK45 | rtol = 1e-06 | 9.36e-04 | 220 | 0.015 |
+| SciPy RK45 | rtol = 1e-07 | 5.33e-05 | 262 | 0.018 |
+| SciPy RK45 | rtol = 1e-08 | 2.46e-06 | 358 | 0.026 |
+
 ## Sensitivity (nominal apogee 1012.9 m)
 
 | Input | Range | Apogee change [m] | Landing distance [m] |
@@ -69,22 +95,22 @@
 | Measure | Original settings (h = 0.01 s throughout) | Selected (h = 0.02 s, descent 0.1 s) |
 | --- | --- | --- |
 | Full flight, RHS calls | 109084 | 12980 |
-| Full flight, run time [s] | 1.18 | 0.22 |
+| Full flight, run time [s] | 1.47 | 0.25 |
 
 - Apogee difference: 0.0000 m; landing time difference 0.0000 s
-- One right-hand-side call: 76.7 us; numpy.cross 14.7 us per call against cross3 1.2 us
+- One right-hand-side call: 75.5 us; numpy.cross 19.1 us per call against cross3 1.5 us
 - Estimated 381 FLOP per RHS call -> 5.0 MFLOP/s achieved
 - Full-flight history 355 kB
 
-Profile of one ascent (0.63 s, own time):
+Profile of one ascent (0.53 s, own time):
 
 | Function | Share |
 | --- | --- |
-| dynamics.py:f | 13.8 % |
-| aerodynamics.py:aerodynamic_loads | 8.5 % |
-| quaternions.py:quat_multiply | 8.3 % |
-| _linalg.py:solve | 7.0 % |
-| quaternions.py:quat_to_rotation_matrix | 4.4 % |
+| dynamics.py:f | 13.9 % |
+| aerodynamics.py:aerodynamic_loads | 8.4 % |
+| quaternions.py:quat_multiply | 8.0 % |
+| _linalg.py:solve | 6.8 % |
+| quaternions.py:quat_to_rotation_matrix | 4.2 % |
 | rigid_body.py:angular_acceleration | 3.9 % |
-| quaternions.py:quat_derivative | 3.8 % |
-| integrators.py:rk4_step | 3.5 % |
+| quaternions.py:quat_derivative | 3.7 % |
+| quaternions.py:cross3 | 3.4 % |

@@ -4,14 +4,14 @@ A six-degree-of-freedom (6-DOF) flight simulator for a single-stage model rocket
 
 It takes a rocket description (shape, mass, motor thrust curve, drag, parachute) and launch conditions (rail angle, wind), and predicts the flight from ignition to landing: apogee, speed, stability margin and landing point. The rocket is a rigid body with 13 states (position, velocity, attitude quaternion, body rates), integrated with a hand-written fourth-order Runge-Kutta (RK4) method.
 
-**Result.** For my L1 ROCKET on an AeroTech HP-H182R motor, the simulator predicts an apogee of 1013.5 m against OpenRocket's 1013.6 m (−0.01 %; the acceptance criterion was 5 %). The drag coefficient is taken from OpenRocket, so this checks the equations of motion, thrust, mass, atmosphere and numerics, not the drag prediction. Full numbers: [`reports/results.md`](reports/results.md).
+**Result.** For my L1 ROCKET on an AeroTech HP-H182R motor, the simulator predicts an apogee of 1013.5 m against OpenRocket's 1013.6 m (−0.01 %; the acceptance criterion was 5 %). The drag coefficient is fitted to OpenRocket's data, so this checks the equations of motion, thrust, mass, atmosphere and numerics, not the drag prediction. In a 5 m/s crosswind it reproduces OpenRocket's attitude response (tilt and angle of attack). Full numbers: [`reports/results.md`](reports/results.md).
 
 ## Repository structure
 
 ```text
 MMA3001-Project/
 ├── src/rocket6dof/          The simulator (a Python package)
-│   ├── integrators.py       RK4 time step
+│   ├── integrators.py       RK4 time step (and explicit Euler, for comparison)
 │   ├── atmosphere.py        International Standard Atmosphere
 │   ├── motor.py             Thrust curve (.eng files) and motor mass
 │   ├── quaternions.py       Attitude quaternions
@@ -23,8 +23,8 @@ MMA3001-Project/
 │   ├── dynamics.py          The 13-state equations of motion
 │   ├── simulation.py        The flight from pad to landing, events
 │   ├── benchmark.py         Reads the OpenRocket CSV export
-│   └── analysis.py          Helpers for the convergence and sensitivity studies
-├── tests/                   pytest tests
+│   └── analysis.py          Helpers for the integrator comparison, convergence and sensitivity studies
+├── tests/                   pytest tests (103)
 ├── scripts/
 │   ├── run_flight.py        Simulate one flight from the command line
 │   ├── make_figures.py      Regenerate every figure and the results table
@@ -33,7 +33,7 @@ MMA3001-Project/
 ├── data/
 │   ├── rocket/              l1_rocket.toml (simulator input) and L1 ROCKET.ork (OpenRocket design)
 │   ├── motors/              AeroTech_H182R.eng thrust curve
-│   └── benchmark/           L1_benchmark.csv (OpenRocket simulation export)
+│   └── benchmark/           OpenRocket exports: L1_benchmark.csv (still air), L1_benchmark_wind.csv (5 m/s wind)
 ├── reports/
 │   ├── figures/             Figures used in the report (generated)
 │   ├── results.md           Numbers used in the report (generated)
@@ -69,7 +69,7 @@ Run these from the project folder with the environment active.
 | Run the tests | `pytest` |
 | Simulate one flight | `python scripts/run_flight.py` |
 | A flight with wind and a tilted rail | `python scripts/run_flight.py --elevation 85 --wind 4 --wind-from 270` |
-| Regenerate every figure and `reports/results.md` | `python scripts/make_figures.py` (about 30 s) |
+| Regenerate every figure and `reports/results.md` | `python scripts/make_figures.py` (under a minute) |
 | Refit the drag law | `python scripts/fit_drag.py` |
 | Regenerate the test report | `pytest --html=reports/test_report.html --self-contained-html` |
 | Regenerate the HTML documentation | `pdoc --docformat numpy rocket6dof -o docs` |
@@ -86,7 +86,20 @@ The rocket is described in `data/rocket/l1_rocket.toml`. Every value is checked 
 | Motor thrust curve (`.eng` file) and position | s, N, m | times increasing, thrust ≥ 0, ends at 0 |
 | Drag law C_D = cd0 + k M² | – | cd0 > 0, k ≥ 0; Mach 0 to 0.8 |
 | Parachute diameter and drag coefficient | m, – | > 0 |
-| Rail length and elevation; wind speed and direction | m, deg, m/s | length > 0; elevation 0–90; speed ≥ 0 |
+| Rail length and elevation | m, deg | length > 0; elevation 0–90 |
+| Wind speed and direction | m/s, deg | speed ≥ 0; direction the wind blows *from*, clockwise from north (270 = from the west) |
+
+## What `make_figures.py` produces
+
+| Section | Figure | What it shows |
+| --- | --- | --- |
+| Validation | `validation_flight.png`, `cp_cg_stability.png`, `drag_coefficient.png` | Vertical flight against OpenRocket; CP, CG and stability margin; the drag fit |
+| Convergence and stability | `convergence.png` | Apogee error against step size; the RK4 stability limit in wind |
+| Integrator comparison | `integrators.png` | Explicit Euler, RK4 and SciPy RK45: accuracy against cost |
+| Sensitivity | `sensitivity.png` | Change in apogee for each input |
+| Crosswind attitude | `attitude.png` | Tilt, angle of attack and flight path against OpenRocket in a 5 m/s wind |
+
+Every number quoted in the report is written to `reports/results.md`.
 
 ## Outputs
 

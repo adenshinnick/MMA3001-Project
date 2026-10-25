@@ -57,15 +57,17 @@ def make_rhs(rocket, gravity=GRAVITY, wind=None, launch_altitude=0.0):
     drag_model = rocket.drag_model
 
     def f(t, x):
+        # Unpack the parts of the 13-number state that the forces depend on.
         q = x[QUAT]
         omega = x[OMEGA]
-        R = quat_to_rotation_matrix(q)
+        R = quat_to_rotation_matrix(q)       # body axes -> earth axes
 
         # Thrust acts along the body x axis.
         force_body = np.array([rocket.motor.thrust(t), 0.0, 0.0])
         moment_body = np.zeros(3)
 
         if geom is not None:
+            # Air properties at the current height above sea level.
             _, _, rho, sound_speed = isa(launch_altitude + x[2])
             v_air = x[VEL] if wind is None else x[VEL] - wind(x[2])
             v_air_body = R.T @ v_air          # R is orthogonal, so R^T turns Earth into body axes
@@ -74,11 +76,12 @@ def make_rhs(rocket, gravity=GRAVITY, wind=None, launch_altitude=0.0):
             force_body = force_body + f_aero
             moment_body = moment_body + m_aero
 
+        # Assemble dx/dt: the four equations of motion, one per part of the state.
         x_dot = np.empty(13)
-        x_dot[POS] = x[VEL]
-        x_dot[VEL] = R @ force_body / rocket.mass(t) + gravity
-        x_dot[QUAT] = quat_derivative(q, omega)
-        x_dot[OMEGA] = angular_acceleration(rocket.inertia, omega, moment_body)
+        x_dot[POS] = x[VEL]                                           # dr/dt = v
+        x_dot[VEL] = R @ force_body / rocket.mass(t) + gravity        # Newton: dv/dt = F/m + g
+        x_dot[QUAT] = quat_derivative(q, omega)                       # attitude changes with omega
+        x_dot[OMEGA] = angular_acceleration(rocket.inertia, omega, moment_body)   # Euler's equation
         return x_dot
 
     return f
@@ -116,8 +119,9 @@ def make_descent_rhs(rocket, gravity=GRAVITY, wind=None, launch_altitude=0.0):
         rho = isa(launch_altitude + x[2])[2]
         v_air = x[VEL] if wind is None else x[VEL] - wind(x[2])
         speed = np.sqrt(v_air @ v_air)
-        x_dot = np.zeros(13)
+        x_dot = np.zeros(13)        # attitude and body rates stay frozen (zero rate)
         x_dot[POS] = x[VEL]
+        # Parachute drag opposes the velocity relative to the air.
         x_dot[VEL] = -0.5 * rho * speed * cd_area * v_air / rocket.mass(t) + gravity
         return x_dot
 
